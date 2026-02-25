@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>黒フレ 8択クイズ</title>
+    <style>
+        :root {
+            --primary: #111; /* 黒フレなので黒基調 */
+            --accent: #d4af37; /* 金/黄色っぽいアクセント */
+            --bg: #f5f5f7;
+            --card: #ffffff;
+            --text: #1d1d1f;
+            --wrong-bg: #fff0f0;
+            --correct-text: #008000;
+            --wrong-text: #d00000;
+            --border: #e5e5e5;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; background-color: var(--bg); color: var(--text);
+            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+            padding-bottom: 40px;
+        }
+
+        .container { width: 95%; max-width: 600px; margin: 20px auto; flex: 1; display: flex; flex-direction: column; }
+        .card { background: var(--card); border-radius: 16px; padding: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); margin-bottom: 16px; }
+        
+        h2 { text-align: center; margin-top: 0; font-size: 1.5rem; color: var(--primary); margin-bottom: 20px; }
+        .section-title { font-size: 0.85rem; font-weight: bold; color: #666; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Range Select Styling */
+        .select-wrapper {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        select {
+            width: 100%;
+            padding: 14px;
+            font-size: 1.1rem;
+            border-radius: 12px;
+            border: 1px solid #ccc;
+            background: #fff;
+            -webkit-appearance: none;
+            appearance: none;
+            font-weight: bold;
+            color: #333;
+        }
+        .select-arrow {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: #666;
+            font-size: 0.8rem;
+        }
+
+        /* Question Count Selector */
+        .q-select-container { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 20px; }
+        .q-btn {
+            flex: 1; padding: 12px 0; border: 1px solid #ddd; background: #fff; border-radius: 10px;
+            font-weight: bold; color: #666; cursor: pointer; transition: all 0.2s; font-size: 1rem;
+            text-align: center; user-select: none;
+        }
+        .q-btn.selected {
+            background: var(--primary); color: var(--accent); border-color: var(--primary);
+        }
+
+        .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 10px 0; border-top: 1px solid #eee; border-bottom: 1px solid #eee; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        .stock-card { background: #333; color: #fff; text-align: center; padding: 20px; }
+        .stock-card h2 { color: #fff; }
+        .stock-count { font-size: 2.5rem; font-weight: 800; color: var(--accent); margin: 10px 0; }
+
+        button {
+            width: 100%; padding: 16px; border: none; border-radius: 12px;
+            font-size: 1.0rem; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: opacity 0.2s, transform 0.1s;
+        }
+        button:active { transform: scale(0.98); opacity: 0.9; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-stock { background: var(--accent); color: #000; }
+        .btn-retry { background: #ff9500; color: white; margin-bottom: 10px; }
+        .btn-outline { background: #fff; color: #666; border: 2px solid #ddd; box-shadow: none; }
+        button:disabled { background: #555; cursor: not-allowed; opacity: 0.6; color: #888; transform: none; }
+
+        /* Quiz View */
+        .status-bar { display: flex; justify-content: space-between; font-weight: 600; color: #888; font-size: 0.9rem; margin-bottom: 15px; }
+        .q-box {
+            background: #fff; border-radius: 16px; padding: 40px 20px; text-align: center;
+            margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); min-height: 140px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .q-text { font-size: 2.4rem; font-weight: 800; line-height: 1.2; color: #000; margin-bottom: 10px;}
+        .speaker-icon { font-size: 1.5rem; color: var(--primary); cursor: pointer; opacity: 0.7; }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .choice-btn {
+            background: #fff; border: 1px solid #ccc; padding: 12px 6px; border-radius: 12px;
+            min-height: 60px; font-size: 0.95rem; font-weight: 600; display: flex;
+            align-items: center; justify-content: center; text-align: center; cursor: pointer;
+            user-select: none; color: #333; -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+        .choice-btn:active { background: #eee; }
+
+        .hidden { display: none !important; }
+
+        /* Result View */
+        .result-summary { text-align: center; font-size: 3rem; font-weight: 800; margin: 20px 0; color: var(--primary); }
+        .result-list { list-style: none; padding: 0; margin: 0; }
+        .result-item { background: #fff; border-bottom: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+        .result-item.incorrect { background-color: var(--wrong-bg); }
+        
+        .res-header { display: flex; justify-content: space-between; font-size: 0.85rem; color: #888; margin-bottom: 4px; }
+        .res-word { font-size: 1.3rem; font-weight: 800; color: #000; display: flex; align-items: center; gap: 8px;}
+        
+        .res-info { display: flex; flex-direction: column; gap: 4px; font-size: 0.95rem; margin-top: 5px; }
+        .val-ok { color: var(--correct-text); font-weight: bold; }
+        .val-ng { color: var(--wrong-text); font-weight: bold; text-decoration: line-through; margin-right: 8px;}
+        .val-ans { color: var(--wrong-text); font-weight: bold; }
+
+        /* Examples Section in Result */
+        .res-examples {
+            margin-top: 8px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+            font-size: 0.95rem;
+        }
+        /* 変更点: font-styleをnormalにし、色を少し濃くしました */
+        .ex-en { font-style: normal; color: #222; margin-bottom: 4px; font-weight: 500; }
+        .ex-jp { color: #666; font-size: 0.85rem; }
+
+        .stock-badge { display: inline-block; background: var(--accent); color: #000; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; vertical-align: middle; font-weight: bold;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="setup-view">
+        <div class="card stock-card">
+            <h2>苦手リスト (Stock)</h2>
+            <div class="stock-count" id="stock-display">0</div>
+            <button class="btn-stock" id="btn-start-stock" onclick="startStockQuiz()">
+                苦手リストから出題
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="section-title">出題範囲 (Range)</div>
+            <div class="select-wrapper">
+                <select id="range-select">
+                    </select>
+                <div class="select-arrow">▼</div>
+            </div>
+            
+            <div class="section-title">問題数 (Count)</div>
+            <div class="q-select-container">
+                <div class="q-btn selected" onclick="selectQNum(10, this)">10</div>
+                <div class="q-btn" onclick="selectQNum(20, this)">20</div>
+                <div class="q-btn" onclick="selectQNum(50, this)">50</div>
+                <div class="q-btn" onclick="selectQNum(100, this)">100</div>
+            </div>
+
+            <div class="toggle-row">
+                <span style="font-weight:bold">音声読み上げ</span>
+                <label class="switch">
+                    <input type="checkbox" id="voice-toggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <button class="btn-primary" onclick="startNormalQuiz()">スタート</button>
+        </div>
+    </div>
+
+    <div id="quiz-view" class="hidden">
+        <div class="status-bar">
+            <span id="progress">1 / 10</span>
+            <span id="score">正解: 0</span>
+        </div>
+        <div class="q-box">
+            <div class="q-text" id="q-text">Word</div>
+            <div class="speaker-icon" onclick="replayVoice()">🔊</div>
+        </div>
+        <div class="grid" id="choices"></div>
+        <div style="text-align:center; margin-top:30px;">
+             <button onclick="confirmQuit()" style="background:none; border:none; color:#999; width:auto; padding:10px; font-weight:normal;">中断して戻る</button>
+        </div>
+    </div>
+
+    <div id="result-view" class="hidden card" style="padding:0; overflow:hidden; display:flex; flex-direction:column; max-height:90vh;">
+        <div style="padding: 24px; background: #fafafa; border-bottom: 1px solid #eee;">
+            <h2 style="margin-bottom:10px;">結果発表</h2>
+            <div class="result-summary" id="final-score">8 / 10</div>
+            
+            <div id="retry-actions">
+                <button class="btn-retry" id="btn-retry-wrong" onclick="startRetryWrong()">
+                    間違えた問題だけやり直す
+                </button>
+                <button class="btn-outline" onclick="location.reload()">
+                    終了してトップへ
+                </button>
+            </div>
+        </div>
+        <div style="overflow-y:auto; flex:1; -webkit-overflow-scrolling: touch;">
+            <ul class="result-list" id="review-list"></ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    // データ解析と構築
+    const rawData = [
+        [1,"advocate","を支持する、主張する","自由市場を支持する","Advocate a free market."],
+[2,"deliberation","熟考、慎重","かなり熟考してから","After considerable deliberation."],
+[3,"sophisticated","洗練された、精緻な","簡素だが洗練された装飾","A simple yet sophisticated decor."],
+[4,"appreciative","鑑賞眼のある、感謝している","鑑賞眼のある批評家","An appreciative critic."],
+[5,"comprehensible","分かりやすい、理解できる","分かりやすい方法で","In a comprehensible fashion."],
+[6,"dominate","を支配する、優位に立つ","国内市場を支配する","Dominate domestic markets."],
+[7,"ambiguous","曖昧な","曖昧な態度","An ambiguous attitude."],
+[8,"discrepancy","不一致、食い違い","不一致に気付く","Notice a discrepancy."],
+[9,"adamant","断固とした","断固とした拒絶","An adamant refusal."],
+[10,"compelling","魅力的な、説得力のある","魅力的な物語","A compelling story."],
+[11,"anonymous","特命の","特命の作家","An anonymous author."],
+[12,"breakthrough","大発見、飛躍的な進歩","画期的な大発見","A revolutionary breakthrough."],
+[13,"encouraging","励みになる、勇気づけられる","励みになる復興の兆し","Encouraging signs of recovery."],
+[14,"dwelling","住居、居住施設","快適な住居を提供する","Provide comfortable dwellings."],
+[15,"jeopardize","を危険にさらす","〜との関係を危険にさらす","Jeopardize relations with."],
+[16,"paramount","最重要の、最高の","最重要である","Be of paramount importance."],
+[17,"aggravate","を悪化させる","現状を悪化させる","Aggravate an existing situation."],
+[18,"champion","支援者、支持者","強力な支援者であり続ける","Remain a strong champion."],
+[19,"articulate","をはっきりと話す","考えをはっきりと話す","Articulate an idea."],
+[20,"discerning","鑑識眼のある","鑑識眼のある芸術品収集家","A discerning art collector."],
+[21,"adequate","十分な、適度な","十分な英語運用能力","An adequate command of English."],
+[22,"charitable","事前の","事前活動に貢献する","Contribute to a charitable cause."],
+[23,"endeavor","努力する","間違いを是正する努力をする","Endeavor to rectify the discrepancies."],
+[24,"disappear","消える","視界から消える","Disappear from view."],
+[25,"masterpiece","最高傑作、名作","不朽の最高傑作を守る","Preserve enduring masterpieces."],
+[26,"phenomenal","驚異的な、現象の","驚異的な成長を遂げる","Achieve phenomenal growth."],
+[27,"compulsory","義務的な、必須の","参加は義務である","Attendance is compulsory."],
+[28,"indispensable","不可欠の、必須の","あなたの援助は私たちには不可欠です","Your assistance is indispensable for us."],
+[29,"eradicate","を根絶する","ウイルスを根絶する","Eradicate a virus."],
+[30,"formidable","手強い、並大抵ではない","手強い問題に直面する","Face a formidable problem."],
+[31,"abundant","豊富な","豊富な資源","Abundant resources."],
+[32,"delegation","委譲、委任","権限の委譲","Delegation of authority."],
+[33,"instrumental","役立つ、有益な","問題解決に役立つ","Be instrumental in solving the problem."],
+[34,"exceedingly","非常に、極めて","非常に価値がある","Be exceedingly valuable."],
+[35,"noteworthy","注目に値する、顕著な","注目に値する功績","A noteworthy achievement."],
+[36,"splendid","素晴らしい、見事な","素晴らしい城を復元する","Restore a splendid castle."],
+[37,"contributor","寄稿者、貢献者","我々の雑誌に定期的に寄稿してくれる人","A regular contributor to our magazine."],
+[38,"lingering","延々と続く","延々と続く経済不況","Lingering economic recession."],
+[39,"contemplate","熟考する","静かに熟考する","Calmly contemplate."],
+[40,"indoctrinate","に教え込む、吹き込む","その学校のイデオロギーを生徒に教え込む","Indoctrinate students in the school's ideology."],
+[41,"awareness","認知度、認識","ブランドの認知度を高める","Raise brand awareness."],
+[42,"cutting-edge","最先端の","最先端の医療機器","A cutting-edge medical device."],
+[43,"headquarter","の本社を置く","ロンドンに本社を置く","Be headquartered in London."],
+[44,"bothersome","厄介な、面倒な","少し厄介な問題","Slightly bothersome issues."],
+[45,"flagship","基幹、最重要","基幹店をオープンする","Open a flagship store."],
+[46,"stipulate","を明記する、と規定する","する義務をはっきりと明記する","Clearly stipulate the obligations to do."],
+[47,"deem","と考える、みなす","その解決策は実行不可能と考える","Deem the solution impractical."],
+[48,"enlightening","啓発的な","啓発的な演説をする","Deliver an enlightening speech."],
+[49,"abbreviate","を短縮する","ロサンゼルスをLAと短縮する","Abbreviate Los Angeles as LA."],
+[50,"demonstrably","明らかに、はっきりと","明らかにより安全なソフトウェア","Demonstrably more secure software."],
+[51,"acclaimed","評価の高い","国際的に評価の高い画家","An internationally acclaimed painter."],
+[52,"expedite","を迅速に処理する","注文を迅速に処理する","Expedite an order."],
+[53,"hypothesis","仮説、前提","仮説を立証する","Validate a hypothesis."],
+[54,"conglomerate","複合企業体","多国籍の複合企業体","A multinational conglomerate."],
+[55,"encrypt","を暗号化する","メッセージを暗号化する","Encrypt messages."],
+[56,"plummet","急落する","予想通り株価が急落した","Stock prices plummeted as anticipated."],
+[57,"abruptly","急に","急に立ち止まる","Stop abruptly."],
+[58,"inappropriate","不適切な、不適当な","不適切な治療を避ける","Avoid inappropriate treatment."],
+[59,"emphatically","強調して、断固として","断固としてSがVであると宣言する","Declare emphatically that S V."],
+[60,"intricate","複雑な、難解な、入り組んだ","複雑な壁画を見る","View some intricate murals."],
+[61,"appearance","出演","テレビへの出演","An appearance on TV."],
+[62,"considerate","思いやりがある","他人に対して思いやりがある","Be considerate of others."],
+[63,"exponentially","飛躍的に、急激に","飛躍的に増加する","Increase exponentially."],
+[64,"classified","機密の、極秘の","機密情報","Classified information."],
+[65,"illuminate","を照らす、明るくする","クリスマスツリーを照らす","Illuminate a Christmas tree."],
+[66,"resumption","再開、回復","生産の全面的な再開","Full resumption of production."],
+[67,"demeanor","態度、振る舞い","自信に満ちた態度","A confident demeanor."],
+[68,"intriguing","興味深い、面白い","興味深い出来事","Intriguing events."],
+[69,"inscribe","を刻み込む、掘る","記念碑に詩を刻み込む","Inscribe a poem on a memorial stone."],
+[70,"spontaneously","自然に","自然に消える","Disappear spontaneously."],
+[71,"compensation","償い、保障","ご不便の償いとして","As compensation for an inconvenience."],
+[72,"feasible","実現可能な","実現可能な目標を設定する","Set a feasible goal."],
+[73,"introductory","入門の、最初の","入門書","An introductory book."],
+[74,"accredited","認定を受けた","認定を受けた代理人","An accredited agent."],
+[75,"lump sum","一括払いの","一括払いをする","Make a lump sum payment."],
+[76,"summarize","を要約する、簡単に述べる","重要なポイントを要約する","Summarize the key points."],
+[77,"culminate","最高潮に達する、終わる","基調演説で最高潮に達する","Culminate with a keynote speech."],
+[78,"mandate","を義務付ける","従業員に参加を義務付ける","Mandate employees to participate."],
+[79,"impeccable","非の打ち所のない","非の打ち所のない正確さ","Impeccable accuracy."],
+[80,"procrastinate","先延ばしにする","決定を下さず先延ばしにする","Procrastinate instead of making a decision."],
+[81,"circulation","発行部数","雑誌の発行部数","Circulation of magazines."],
+[82,"imperative","必須の、不可欠の","必須の仕事","An imperative duty."],
+[83,"streamline","を合理化する","意思決定のプロセスを合理化する","Streamline a decision-making process."],
+[84,"organized","きちんとした、几帳面な","きちんとした社員","An organized employee."],
+[85,"problematic","問題のある","問題のある状況に対処する","Handle a problematic situation."],
+[86,"swiftly","素早く、迅速に","素早く反応する","Respond swiftly."],
+[87,"adjourn","休会する","月次会議はその日休会となった","The monthly meeting adjourned for the day."],
+[88,"meticulous","細心の注意を払った","細心の注意を払う","Pay meticulous attention."],
+[89,"exorbitant","法外な、とんでもない","法外な金額を請求する","Charge an exorbitant price."],
+[90,"premature","早すぎる、時期尚早の","早すぎる引退","A premature retirement."],
+[91,"capacity","役割、立場","助言する役割","An advisory capacity."],
+[92,"enormous","莫大な、巨大な","莫大な労力","An enormous amount of labor."],
+[93,"outreach","奉仕活動、福祉活動","奉仕活動プログラムを起案する","Draft an outreach program."],
+[94,"adversely","不利に、逆に","地元民に悪影響を与える","Adversely affect local residents."],
+[95,"monopolize","を独占する","国内市場を独占する","Monopolize the domestic market."],
+[96,"remaining","残りの","残りの候補者と面接する","Interview remaining candidates."],
+[97,"fluctuate","変動する","株価は絶えず変動する","Stock prices fluctuate constantly."],
+[98,"remuneration","報酬、給料","〜から報酬を受け取る","Receive remuneration from."],
+[99,"implore","に懇願する","誰かに援助を懇願する","Implore someone for aid."],
+[100,"reminiscent","思い出させる","幼少時代を思い出させる","Be reminiscent of a childhood."],
+[101,"Distinguished","著名な、際立った","著名な振付師","A distinguished choreographer"],
+[102,"Land","を獲得する","正社員の職を獲得する","Land a permanent job"],
+[103,"Painstaking","骨が折れる、労を惜しまない","骨が折れる努力をする","Make painstaking efforts"],
+[104,"Artisanship","職人の技術、職人技","職人の技術の瑕疵が原因で","Due to defects in artisanship"],
+[105,"Inviting","魅力的な、感じの良い","魅力的な申し出","An inviting offer"],
+[106,"Rewarding","やりがいのある","やりがいのあるプロジェクト","A rewarding project"],
+[107,"Efficacy","効き目、効能","薬の効き目","The efficacy of a drug"],
+[108,"Obligatory","必修の、義務的な","返信は必須ではありません","A reply is not obligatory"],
+[109,"Arduous","骨の折れる、困難な","骨の折れる仕事","An arduous undertaking"],
+[110,"Sparingly","控えめに","専門用語を控えめに使う","Use technical terms sparingly"],
+[111,"Fascinate","を魅了する","観客を魅了する","Fascinate the audience"],
+[112,"Illustrate","を説明する","要点を説明する","Illustrate a point"],
+[113,"Reimburse","を払い戻す","旅費を払い戻す","Reimburse travel expenses"],
+[114,"Credibility","信頼性、信憑性","ほとんど信頼性のない情報","Information of little credibility"],
+[115,"Petition","嘆願、請願","嘆願を撤回する","Withdraw a petition"],
+[116,"Recession","景気後退、不景気","何年もの景気後退の後","After many years of recession"],
+[117,"Hectic","慌ただしい、忙しい","慌ただしい生活を送る","Live a hectic life"],
+[118,"Paralegal","弁護士業務を補佐する人","弁護士業務の補佐人を雇う","Hire a paralegal"],
+[119,"Incumbent","現職の、在職の","現職の市長","An incumbent mayor"],
+[120,"Rectify","を訂正する、是正する","声明を訂正する","Rectify a statement"],
+[121,"Affordable","手頃な、(手が届く)","手頃な値段で","At an affordable price"],
+[122,"Electronically","電子媒体を使って、電子的に","電子媒体で申込書を送る","Electronically send an application"],
+[123,"Pollution","汚染、公害","環境汚染を減らす","Decrease environmental pollution"],
+[124,"Downsize","を削減する","労働力を削減する","Downsize a workforce"],
+[125,"Presumably","おそらく","おそらく時間的制約が原因で","Presumably due to time constraints"],
+[126,"Seasoned","経験豊富な、熟練した","経験豊富な女優","A seasoned actress"],
+[127,"Binding","拘束力のある、義務的な","拘束力のある契約","A binding contract"],
+[128,"Rapport","関係","しっかりした関係を築く","Build solid rapport"],
+[129,"Ambiance","雰囲気","楽しい雰囲気を演出する","Create a pleasant ambiance"],
+[130,"Manipulate","を巧みに扱う、操作する","大量のデータを巧みに扱う","Manipulate huge amounts of data"],
+[131,"Malfunction","機械の故障、誤作動","エンジンの故障により","Due to a malfunction in the engine"],
+[132,"Prosperous","繁栄している、成功している","ますます繁栄していく国","An increasingly prosperous country"],
+[133,"Stagnant","停滞した","停滞した市場","A stagnant market"],
+[134,"Continue","再開する","演奏は休憩の後再開した","The performance continued following an intermission"],
+[135,"Shrink","縮小する、縮む","縮小する労働市場","A shrinking job market"],
+[136,"Unforgettable","忘れられない","忘れられない経験","An unforgettable experience"],
+[137,"Deliberate","慎重な、意図的な","慎重な決定を下す","Make a deliberate decision"],
+[138,"Render","の状態にする","現存の契約を無効にする","Render the existing agreement invalid"],
+[139,"Exhilarating","刺激的な、爽快な","刺激的な光景","An exhilarating scene"],
+[140,"Ubiquitous","当たり前の、どこにでもある","当たり前になる","Become ubiquitous"],
+[141,"Bankrupt","破産した","破産する","Go bankrupt"],
+[142,"Flourish","繁栄する","何世紀にも渡ってずっと繁栄する","Continually flourish for centuries"],
+[143,"Testimonial","推薦状、証明、証明書","推薦状を依頼する","Ask for a testimonial"],
+[144,"Harmonize","調和する","自然とうまく調和する","Harmonize well with nature"],
+[145,"Retrievable","検索できる、取り戻せる","容易に検索できるデータ","Readily retrievable data"],
+[146,"Worthwhile","価値のある","価値のある仕事をする","Do a worthwhile job"],
+[147,"Adept","熟練した","人前で話すことに熟練している","Be adept at speaking in public"],
+[148,"Scrutinize","を精査する、注意深く調べる","海外市場を精査する","Scrutinize the overseas market"],
+[149,"Delectable","おいしい","おいしい食事を楽しむ","Enjoy a delectable meal"],
+[150,"Plausible","もっともらしい","もっともらしい説明をする","Make a plausible explanation"],
+[151,"Moderate","適度な、穏やかな","適度な利益を上げる","Make a moderate profit"],
+[152,"Proceedings","議事録","議事録を保管する","Keep the proceedings"],
+[153,"Vigorous","精力的な、丈夫な","精力的なキャンペーンを開始する","Mount a vigorous campaign"],
+[154,"Pivotal","極めて重要な","極めて重要な出来事","A pivotal event"],
+[155,"Theatergoer","芝居好き、芝居の常連","熱狂的な芝居好き","An enthusiastic theatergoer"],
+[156,"Well-being","健康、福祉","体の健康を維持する","Maintain physical well-being"],
+[157,"Insightful","洞察力のある、本質を突いた","洞察力のある分析","An insightful analysis"],
+[158,"Tremendous","とてつもない、素晴らしい","とてつもない進歩を遂げる","Make tremendous advances"],
+[159,"Lavish","豪華な、贅沢な","豪華なパーティーを開催する","Throw a lavish party"],
+[160,"Reinstate","を復職させる、回復する","ラビットは正式にCEOとして復職した","Rabbit was officially reinstated as CEO"],
+[161,"Collaboratively","協力して、共同して","協力して働く","Work collaboratively"],
+[162,"Fierce","激しい","激しい競争にもかかわらず","Notwithstanding fierce competition"],
+[163,"Undertaking","事業、仕事","慈善事業","A charitable undertaking"],
+[164,"Profound","深い、広範囲の","深い洞察力","Profound insight"],
+[165,"Sanitation","衛生","衛生基準","Sanitation guidelines"],
+[166,"Tackle","に取り組む","難しい仕事に取り組む","Tackle a challenging task"],
+[167,"Enviable","羨むほどの、羨ましい","羨むほどの多才","Enviable versatility"],
+[168,"Unsubscribe","定期購読をやめる","雑誌の定期購読をやめる","Unsubscribe from a magazine"],
+[169,"Backdrop","背景、状況","そのような歴史的な背景を考えると","Given such a historical backdrop"],
+[170,"Succinctly","簡潔に","簡潔に要約する","Summarize succinctly"],
+[171,"Negotiable","交渉の余地がある","価格に交渉の余地はない","The price is not negotiable"],
+[172,"Redeemable","換金できる","そのバウチャーはいずれの店舗でも換金できます","The voucher is redeemable at any store"],
+[173,"Sustainable","持続可能な","持続可能な利益を得る","Obtain sustainable benefits"],
+[174,"Outrageous","法外な、過度な","法外な価格","An outrageous price"],
+[175,"Readership","読者数、読者層","雑誌の読者数","Readership of magazines"],
+[176,"Virtually","ほとんど、実質的に、事実上","ほとんど全ての人々","Virtually all people"],
+[177,"Simultaneously","同時に","同時に起きる","Occur simultaneously"],
+[178,"Would-be","志望の","外交官志望者","A would-be diplomat"],
+[179,"Medieval","中世の","中世の大聖堂を訪れる","Visit a medieval cathedral"],
+[180,"Savory","おいしい、味の良い","おいしい朝食を楽しむ","Enjoy a savory breakfast"],
+[181,"Commensurate","見合っている、等しい","能力に見合っている","Be commensurate with ability"],
+[182,"Drastic","抜本的な、思い切った","抜本的な改革案","Drastic reform proposals"],
+[183,"Spectacular","壮観な、目覚ましい","壮観な眺めを満喫する","Enjoy a spectacular view"],
+[184,"Faithful","信頼できる、誠実な、忠実な","信頼できる開業医","A faithful practitioner"],
+[185,"Sequel","続編、続き","本の続編","A sequel to a book"],
+[186,"Trustworthy","信頼できる","信頼できる外科医に診てもらう","See a trustworthy surgeon"],
+[187,"Noticeable","目立った、顕著な","目立った兆候はない","Have no noticeable symptoms"],
+[188,"Provoke","を引き起こす、招く","大規模な地滑りを引き起こす","Provoke a massive landslide"],
+[189,"Brainchild","考案、発明、思いつき","ラビットが考案したものである","Be the brainchild of Rabbit"],
+[190,"Outwardly","外見上は、外に","外見上は同じままである","Outwardly remain the same"],
+[191,"Disclose","を公開する、開示する","財務情報を公開する","Disclose financial information"],
+[192,"Luxurious","高級な、贅沢な、豪華な","高級な宿泊施設","A luxurious accommodation"],
+[193,"Offshore","海外の、沖合の","海外の製造に頼る","Depend on offshore manufacture"],
+[194,"Aviation","航空機産業、航空","航空機産業における技術革新","Technological innovations in aviation"],
+[195,"Stellar","素晴らしい、輝かしい","素晴らしい評判を確立する","Establish a stellar reputation"],
+[196,"Unaware","気付いていない、不注意な","間違いに気付いていない","Be unaware of the mistake"],
+[197,"Sweeping","広範囲の、全面的な","広範囲にわたる製品","A sweeping range of products"],
+[198,"Unanimously","満場一致で、全会一致で","満場一致で法案を承認する","Unanimously approve a bill"],
+[199,"Hilarious","非常に面白い、陽気な","非常に面白い逸話を集める","Collect hilarious anecdotes"],
+[200,"Underscore","を強調する","重要なポイントを強調する","Underscore an important point"],
+[201,"Alleviate","を緩和する、やわらげる","交通渋滞を緩和する","Alleviate traffic jams"],
+[202,"Breathtaking","息をのむような","息をのむような美しい眺め","A breathtaking view"],
+[203,"Informative","有益な、情報を提供する","有益な講義に参加する","Attend an informative lecture"],
+[204,"Memorandum","社内回報、覚え書き、メモ","社内回報によれば","According to the company memorandum"],
+[205,"Archaeological","考古学的な、考古学の","考古学的な発見","Archaeological findings"],
+[206,"Commodity","商品、日用品","使い捨て商品","A disposable commodity"],
+[207,"Elaborate","精緻な、複雑な","精緻な装飾を施す","Add elaborate decorations"],
+[208,"Chronicle","年代記","年代記を編纂する","Compile a chronicle"],
+[209,"Judicious","賢明な、思慮分別のあ","賢明な選択をする","Make a judicious choice"],
+[210,"Categorically","明確に、断固として","訴えを明確に否定する","Categorically deny the accusation"],
+[211,"Compromise","を損なう、妥協する","品質を損なうことなく","Without compromising quality"],
+[212,"Abolish","を廃止する","輸入貧に対する関税を廃止する","Abolish tariffs on imports"],
+[213,"Hardship","苦労、困難","財政的な困難に耐える","Endure financial hardship"],
+[214,"Prescribe","を処方する","新しい薬を処方する","Prescribe a new medication"],
+[215,"Imaginative","想像力に富む","想像力に富んだアイデアを生み出す","Generate imaginative ideas"],
+[216,"Drowsiness","眠気","眠気を誘う","Cause drowsiness"],
+[217,"Deter","を防ぐ","ライバル企業の市場参入を防ぐ","Deter competitors from entering the market"],
+[218,"Lucrative","儲かる","儲かる市場に進出する","Expand into a lucrative market"],
+[219,"Anthropology","人類学","言語人類学","Linguistic anthropology"],
+[220,"Extravagant","法外な、極端な","法外な主張","Extravagant claims"],
+[221,"Internship","職業研修、インターンの地位、期間","職業研修に申し込む","Apply for an internship"],
+[222,"Disappointing","がっかりさせる、期待外れの","がっかりさせる知らせ","Disappointing news"],
+[223,"Commonplace","当たり前の、普通の","当たり前になる","Become commonplace"],
+[224,"Curriculum","教育課程、カリキュラム","新しい教育課程を導入する","Introduce a new curriculum"],
+[225,"Adhesive","接着剤","接着剤でくっつけられている","Be attached with an adhesive"],
+[226,"Reputable","評判の良い、信頼できる","評判の良い病院","A reputable hospital"],
+[227,"Mediate","を仲裁する","意見の対立を仲裁する","Mediate a conflict of opinions"],
+[228,"Meditate","瞑想する","毎日瞑想する","Meditate daily"],
+[229,"Instill","を教え込む、染み込ませる","新人に企業価値を教え込む","Instill company values into new hires"],
+[230,"Discriminating","良いものを見分ける","良いものを見分ける目","A discriminating eye"],
+[231,"Decline","を断る、辞退する","申し出を断る","Decline an offer"],
+[232,"Identical","同じ、一致している","色が同じである","Be identical in color"],
+[233,"Architecture","建築、建造物","建築会社","An architecture firm"],
+[234,"Evenly","均等に、平等に","参加者で均等に分けられる","Be evenly divided among participants"],
+[235,"Payable","支払い可能な","現金のみで支払い可能である","Be payable by cash only"],
+[236,"Logistics","物流","大手の物流会社","A large logistics company"],
+[237,"Apprehend","を理解する、心配する","事の重要性を理解する","Apprehend the importance of the matter"],
+[238,"Ordinance","条例、慣習","市の条例を草案する","Draft a city ordinance"],
+[239,"Infamous","悪名高い、評判の悪い","悪評を得る","Earn an infamous reputation"],
+[240,"Descendant","子孫","信長の直系子孫","An immediate descendant of Nobunaga"],
+[241,"Demolish","を取り壊す","古い家を取り壊す","Demolish an old house"],
+[242,"Carve","を彫る、刻む","彫像を彫る","Carve a statue"],
+[243,"Magnificent","壮大な、素晴らしい","壮大な眺め","A magnificent view"],
+[244,"Pinpoint","を正確に指摘する","問題を正確に指摘する","Pinpoint the problem"],
+[245,"Humidity","湿気、湿度","適度な湿度を保つ","Keep suitable levels of humidity"],
+[246,"Candid","率直な、公平な","率直なやり方で","In a candid manner"],
+[247,"Facet","局面","ビジネスのあらゆる局面において","In every facet of business"],
+[248,"Redundant","冗長な、余剰の","冗長な文章を削除する","Remove a redundant sentence"],
+[249,"Palatable","おいしい","とてもおいしいプラムケーキ","Very palatable plum cake"],
+[250,"Erroneous","誤りのある、間違った","誤りのあるデータを修正する","Correct erroneous data"],
+[251,"Nationwide","全国的に、全国にわたって","全国にたくさんの支店がある","There are lots of branches nationwide"],
+[252,"Considerable","かなりの、相当な","かなりの差で","By a considerable margin"],
+[253,"Accompanying","添付の、同封の","添付ファイル","An accompanying file"],
+[254,"Disinfect","を消毒する、殺菌する","医療機器を消毒する","Disinfect medical equipment"],
+[255,"Legendary","伝説的な","伝説的なギタリストを呼び物とする","Feature a legendary guitarist"],
+[256,"Rainforest","熱帯雨林","熱帯雨林を守る","Save a rainforest"],
+[257,"Harsh","厳しい","厳しい態度をとる","Assume a harsh attitude"],
+[258,"Concurrently","同時に","ほとんど同時に","Almost concurrently"],
+[259,"Reprimand","を叱責する","彼の無礼な態度を叱責する","Reprimand him for his rude manner"],
+[260,"Mediocre","平凡な、並の、二流の","平凡な研究","Mediocre research"],
+[261,"Manufacture","を製造する、製作する","家電製品を製造する","Manufacture home appliances"],
+[262,"Dependable","信頼できる","信頼できる情報","Dependable information"],
+[263,"Back-ordered","入荷待ちの","入荷待ちの品物","Back-ordered items"],
+[264,"Skyrocket","急上昇する、急騰する","人気が急上昇する","Skyrocket in popularity"],
+[265,"Abstract","抽象的な","抽象的な理論","An abstract theory"],
+[266,"Outbreak","突然の発生、勃発","コロナウイルスの突然の発生","An outbreak of coronavirus"],
+[267,"Albeit","たとえ～でも、～にもかかわらず","たとえ一時的であっても","Albeit temporarily"],
+[268,"Rationale","論拠","構造改革の背後にある論拠","Rationale behind the restructuring"],
+[269,"Delineate","を詳しく説明する、輪郭を描く","職務内容を詳しく説明する","Delineate a job description"],
+[270,"Imperfection","欠陥、不完全","欠陥がないか調べる","Inspect for imperfections"],
+[271,"Approximate","およその、概算の、近い","部屋のおよそのサイズ","The approximate dimensions of the room"],
+[272,"Devoted","打ち込んでいる、献身的な","慈善活動に打ち込んでいる","Be devoted to a charitable cause"],
+[273,"Mortgage","住宅ローン、抵当権","低金利の住宅ローンを受ける","Get a low interest mortgage"],
+[274,"Paralyze","を麻痺させる、無力にする","経済を完全に麻痺させる","Totally paralyze the economy"],
+[275,"Fertility","肥沃、豊富","土地の肥沃度を維持する","Maintain soil fertility"],
+[276,"Sequence","一連、連続、順番","一連の出来事","A sequence of events"],
+[277,"Evoke","を引き起こす、喚起する","拍手の波を引き起こす","Evoke waves of applause"],
+[278,"Irrigation","灌漑","灌漑システムを導入する","Introduce an irrigation system"],
+[279,"Adolescence","青年期","青年期の経験","Experience during adolescence"],
+[280,"Marginally","わずかに","わずかに成功を収めている","Be marginally successful"],
+[281,"Grant","を与える、許可する","生徒に奨学金を与える","Grant students a scholarship"],
+[282,"Enhance","を高める、強化する","経営の透明性を高める","Enhance transparency in management"],
+[283,"Accurately","正確に","驚くほど正確に距離を測定する","Measure distance remarkably accurately"],
+[284,"Procure","を調達する","追加の資金を調達する","Procure additional funds"],
+[285,"Divider","間仕切り、仕切り","部屋の間仕切り","Room dividers"],
+[286,"Attorney","弁護士","弁護士に相談する","Consult an attorney"],
+[287,"Captivate","を魅了する","観客を魅了する","Captivate an audience"],
+[288,"Pasture","牧草地","牧草地にたくさんの羊がいる","There are a lot of sheep in the pasture"],
+[289,"Encompass","を取り囲む、含む","学生たちの生活のあらゆる側面を取り囲む規則","Rules that encompass every aspect of students' lives"],
+[290,"Protagonist","主人公、主役","小説の主人公","A protagonist of a novel"],
+[291,"Attentive","思いやりのある","思いやりのある礼儀正しいスタッフ","Attentive and courteous staff members"],
+[292,"Entrepreneur","起業家、企業家","カリスマ的な起業家","A charismatic entrepreneur"],
+[293,"Perishable","腐りやすい、日持ちしない","腐りやすい食品","Perishable food"],
+[294,"Editorial","社説","極めて批判的な社説を書く","Write a highly critical editorial"],
+[295,"Sleek","しゃれた、艶のある","しゃれた優雅な家具","Sleek and elegant furniture"],
+[296,"Pedometer","万歩計","万歩計をつけて歩く","Walk with a pedometer"],
+[297,"Sluggish","停滞した、不景気な","停滞した経済を活性化させる","Revitalize the sluggish economy"],
+[298,"Inhabitant","住民、居住者 / 近隣住民","Neighborhood inhabitants", null],
+[299,"Accumulate","を蓄積する","一定の経験を蓄積する","Accumulate a certain amount of experience"],
+[300,"Scrumptious","おいしい","おいしい野菜","Scrumptious vegetables"],
+[301,"Field","に答える","厄介な質問に答える","Field embarrassing questions"],
+[302,"Remarkably","驚くほど、著しく","驚くほど多様な製品","Remarkably diverse products"],
+[303,"Conventional","従来型の、慣習の、伝統の","従来型の農業を改良する","Improve conventional agriculture"],
+[304,"Justify","を正当化する","値上げを正当化する","Justify a price increase"],
+[305,"Reliability","信頼性、信頼","ソフトウェアの信頼性を保証する","Ensure software reliability"],
+[306,"Conservative","保守的な、控えめの","保守的な態度","Conservative attitudes"],
+[307,"Depletion","枯渇、減少","資金の枯渇","A depletion of funds"],
+[308,"Unparalleled","比類なき","比類なき情熱","Unparalleled passion"],
+[309,"Inevitable","避けられない、必然的な","避けられない悪化に直面する","Encounter inevitable deterioration"],
+[310,"Amenable","素直に従う、従順な","助言に素直に従う","Be amenable to advice"],
+[311,"Inconvenience","に迷惑をかける","ご迷惑をおかけしていなければ良いのですが","I hope I haven't inconvenienced you"],
+[312,"Refundable","返金可能な","返金可能な往復チケット","A refundable round trip ticket"],
+[313,"Unwavering","揺るぎない","揺るぎない自信","Unwavering confidence"],
+[314,"Pledge","を誓う、成約する","財政的な支援を誓う","Pledge financial assistance"],
+[315,"Ultimately","最終的に、最後に、ついに","最終的にはCEOが承認する","Be ultimately approved by CEO"],
+[316,"Sanction","制裁、認可","経済制裁を解除する","Lift the financial sanction"],
+[317,"Seamless","途切れない","途切れることのない努力をする","Make seamless efforts"],
+[318,"Nondescript","何の変哲もない、特徴のない","何の変哲もない建造物","A nondescript structure"],
+[319,"Reap","を得る","巨額の利益を得る","Reap a huge profit"],
+[320,"Metaphor","隠喩、暗喩、象徴","適切な隠喩を用いる","Use an appropriate metaphor"],
+[321,"Stringent","厳しい、厳重な","厳しい環境規制","Stringent environmental regulations"],
+[322,"Lightweight","軽量の","軽量だが耐久性がある靴","Lightweight yet durable shoes"],
+[323,"Established","定評のある、有名な","定評のあるデザイナー","An established designer"],
+[324,"Underestimate","を過小評価する","の影響を過小評価する","Underestimate the impact of"],
+[325,"Formulate","を考案する、説明する","明確な戦略を考案する","Formulate a clear strategy"],
+[326,"Bilateral","双方の、二社間の","双方の合意","A bilateral agreement"],
+[327,"Contend","競争する、競う","商品を求めて競争する","Contend for a prize"],
+[328,"Drawback","欠点、不利","欠点を克服する","Overcome a drawback"],
+[329,"Plight","苦境、窮地","財政的な苦境に直面する","Face a financial plight"],
+[330,"Impartial","公平な、偏らない","公平なアドバイスをする","Provide impartial advice"],
+[331,"Image","画像、映像","オンラインで製品の画像を見る","See images of our products online"],
+[332,"Counterpart","対応する人、物","私はフランスの相手を待っています","I'm expecting my French counterpart"],
+[333,"Versatile","多才な、用途の広い","多才な役者","A versatile actor"],
+[334,"Obligate","を義務付ける","メンバーに投票を義務付ける","Obligate members to vote"],
+[335,"Narrowly","かろうじて、狭く、競技に","990対985でかろうじて勝つ","Win narrowly by 990 against 985"],
+[336,"Stern","厳格な、厳しい","厳しい批判に直面する","Face stern criticism"],
+[337,"Accommodating","親切な","親切な人","An accommodating person"],
+[338,"Inconsistency","矛盾、不一致","矛盾に気づく","Notice an inconsistency"],
+[339,"Shrewd","賢明な、鋭い","賢明な選択をする","Make a shrewd choice"],
+[340,"Frenzy","熱狂、狂乱","メディアの熱狂を呼び起こす","Cause a media frenzy"],
+[341,"Employment","雇用、仕事","雇用機会を創出する","Create employment opportunities"],
+[342,"Paperwork","事務作業、文書作成","日常的な事務作業を減らす","Reduce routine paperwork"],
+[343,"Accessibility","入手や利用の可能性","情報の入手利用のしやすさ","Accessibility to information"],
+[344,"Solidify","を固める、強固にする","我々の親密な関係を固める","Solidify our close rapport"],
+[345,"Invigorate","を活性化する、元気づける","社会を活性化する","Invigorate society"],
+[346,"Widespread","幅広い、広範囲の","幅広い支持","Widespread support"],
+[347,"Prolific","多作の","多作の作家","A prolific writer"],
+[348,"Compilation","編集、編集物","辞書の編集","Compilation of a dictionary"],
+[349,"Diminish","を損なう、減らす","評判を損なう","Diminish a reputation"],
+[350,"Sporadically","時折","時折発生する","Arise sporadically"],
+[351,"Provide","を与える、供給する","従業員にデータベースへのアクセス権を与える","Provide employees access to databases"],
+[352,"Expertise","専門知識","マーケティングに対する比類なき専門知識","Unmatched expertise in marketing"],
+[353,"Subscribe","定期購読する、会員登録する","雑誌を定期購読する","Subscribe to a magazine"],
+[354,"Unprepared","準備ができていない","プレゼンの準備ができていない","Be unprepared for a presentation"],
+[355,"Postgraduate","大学院の、大学卒業後の","大学院の学位を追求する","Pursue a postgraduate degree"],
+[356,"Embark","乗り込む、着手する","船に乗り込む","Embark on a ship"],
+[357,"Bestow","を与える","に賞を与える","Bestow an award on"],
+[358,"Top-notch","一流の、最高の","一流の弁護士","A top-notch attorney"],
+[359,"Confiscate","を没収する","違法な輸入品を没収する","Confiscate illegal imports"],
+[360,"Predominant","支配的な、優勢な","支配的な影響を及ぼす","Exert a predominant influence"],
+[361,"Outsource","を外注に出す","仕事のかなりの部分を外注に出す","Outsource a considerable part of work"],
+[362,"Speculate","を推測する、投資する","景気が回復すると推測する","Speculate that the economy will turn around"],
+[363,"Effects","身の回り品、私物","身の回り品の持ち主を特定する","Identify personal effects"],
+[364,"Revert","戻る","本題に戻る","Revert to the original subject"],
+[365,"Variable","変わりやすい","ここの天気は変わりやすい","The weather is variable here"],
+[366,"Moving","心を打たれる、感動的な","深く心を打たれる映画","A profoundly moving film"],
+[367,"Viability","実現可能性","プロジェクトの実現可能性を検証する","Test the viability of a project"],
+[368,"Aesthetically","美的に、美学的に","美的に洗練されている","Be aesthetically refined"],
+[369,"Surrender","を譲り渡す、やめる、放棄する","競合他社に市場シェアを譲り渡す","Surrender market share to competitors"],
+[370,"Earnest","真剣な、熱心な","真剣な議論","Earnest discussions"],
+[371,"Coincidence","偶然の一致","人生は偶然の一致に満ちている","Life is full of coincidences"],
+[372,"Obsolete","時代遅れの","完全な時代遅れになる","Become completely obsolete"],
+[373,"Satisfactory","満足のいく","満足のいく説明をする","Provide satisfactory explanations"],
+[374,"Sacrifice","を犠牲にする、断念する","成功のために全てを犠牲にする","Sacrifice everything for success"],
+[375,"Tightening","強化、締め付けること","規制強化","Tightening of regulations"],
+[376,"Structure","構造、骨組み、建造物","基本構造を確立する","Establish a basic structure"],
+[377,"Fragility","脆弱性、壊れやすさ","経済の脆弱性を克服する","Overcome economic fragility"],
+[378,"Watchful","用心深い","に用心深い目を向ける","Keep watchful eyes on"],
+[379,"Underlying","根本的な、基本的な","根本的な原因を特定する","Identify an underlying cause"],
+[380,"Adherent","支持者、信奉者","熱心な支持者","A devoted adherent"],
+[381,"Shortlist","を最終選考リストに載せる","賞の最終選考リストに乗る","Be shortlisted for the award"],
+[382,"Failure","失敗、不成功","失敗を隠す","Conceal failure"],
+[383,"Preservation","保護、保存","森林の保護","Preservation of forest"],
+[384,"Touch","軽く話す、言及する","結果について軽く話す","Touch on the results"],
+[385,"Respective","それぞれの、各自の","それぞれの分野において","In respective fields"],
+[386,"Annoying","迷惑な、イライラさせる","迷惑な音","An annoying sound"],
+[387,"Suppress","を抑える、やめさせる","内部批判を抑える","Suppress internal criticism"],
+[388,"Illegible","読みにくい、判読不能の","読みにくい筆跡","Illegible handwriting"],
+[389,"Incoherent","一貫しない、支離滅裂な","論理的に一貫しない","Be logically incoherent"],
+[390,"Recurrent","再発する、頻発する","再発する誤り","A recurrent error"],
+[391,"Finish","仕上げ","この家具の仕上げは芸術的だ","This furniture has an artistic finish"],
+[392,"Constraint","制約","時間の制約があるので","Due to time constraints"],
+[393,"Welder","溶接工","熟練の溶接工","A seasoned welder"],
+[394,"Sensitive","に敏感である","気温の変化に敏感である","Be sensitive to changes in temperature"],
+[395,"Terrific","素晴らしい、すごい","それは素晴らしい考えだ","That's a terrific idea"],
+[396,"Deputy","副、代理の","副工場長","Deputy factory manager"],
+[397,"Declare","を宣言する、断言する","契約は無効だと宣言する","Declare the contract invalid"],
+[398,"Ripple","影響、余波、波紋","大きな影響を引き起こす","Cause significant ripples"],
+[399,"Betterment","改善、改良","生活水準の改善","The betterment of living standards"],
+[400,"Vibrant","活気のある、力強い","活気ある雰囲気","Vibrant atmosphere"],
+[401,"Ambitious","意欲的な、熱望している","意欲的な計画","An ambitious project"],
+[402,"Choreographer","振付師","振付師としての経歴","A career as a choreographer"],
+[403,"Deadline","締め切り、期限","締め切りに2日遅れる","Miss a deadline by two days"],
+[404,"Bypass","を迂回する、回避する","ひどく混雑した道を迂回する","Bypass a heavily congested road"],
+[405,"Downturn","下降、不況","売上の大幅な下降","A significant downturn in sales"],
+[406,"In so far as","する限りに於いて","可能な限り","In so far as possible"],
+[407,"Aftermath","影響、余波","の影響で","In the aftermath of"],
+[408,"Intermittently","断続して","何年も断続的に続く","Continue intermittently for years"],
+[409,"Contrive","を考え出す","話の筋を考え出す","Contrive a plot"],
+[410,"Foray","進出","新規市場への進出","A foray into a new market"],
+[411,"Complement","を補う、引き立たせる","経験で知識を補う","Complement knowledge with experience"],
+[412,"Exemplary","模範的な","模範的な行動を示す","Display exemplary behavior"],
+[413,"Mural","壁画、天井画","古代の壁画を保護する","Preserve ancient murals"],
+[414,"Consortium","共同体、合弁企業","国際的な共同体を形成する","Form an international consortium"],
+[415,"Exemplify","を実証する、例証する","重要性を実証する","Exemplify the importance"],
+[416,"Passionate","熱中して、熱烈な","ジャズに熱中している","Be passionate about jazz music"],
+[417,"Cleverly","上手に、賢く","壊れた柵をうまく直す","Cleverly repair a damaged fence"],
+[418,"Defer","を延期する","決定を延期する","Defer a decision"],
+[419,"Exaggerate","を誇張する","何でも誇張して言う","Exaggerate everything"],
+[420,"Pragmatic","実用的な、実践的な","実践的なアプローチを行う","Take a pragmatic approach"],
+[421,"Abridged","要約された","要約版","An abridged edition"],
+[422,"Contamination","汚染","深刻な汚染に苦しむ","Suffer serious contamination"],
+[423,"Indefinitely","無期限に、無制限に","全便が無期限に延期となった","All flights have been indefinitely postponed"],
+[424,"Artificial","人工的な","人工肥料","An artificial fertilizer"],
+[425,"Eloquent","雄弁な、説得力のある","雄弁な演説をする","Deliver an eloquent address"],
+[426,"Rotating","交代制の、輪番の","交代制で順番に行う","Take turns on a rotating basis"],
+[427,"Craftsmanship","職人技","熟練した職人技を示す","Display expert craftsmanship"],
+[428,"Explicitly","はっきりと、明確に","はっきりと明記されている通り","As explicitly stipulated"],
+[429,"Idyllic","のどかな、牧歌的な","のどかな環境で暮らす","Live in an idyllic setting"],
+[430,"Proclaim","を宣言する、公表する","自己の権利を宣言する","Proclaim one's rights"],
+[431,"Abandon","を断念する、捨てる","海外進出の企てを断念する","Abandon an attempt to expand overseas"],
+[432,"Compatible","互換性がある、相性が良い","ほとんどのソフトと互換性がある","Be compatible with most software"],
+[433,"Eligible","資格のある、適した","産休の資格がある","Be eligible for maternity leave"],
+[434,"Decidedly","明らかに、きっぱりと","明らかに異なる","Be decidedly different"],
+[435,"Hospitalize","を入院させる","ラビットは2週間入院した","Rabbit was hospitalized for two weeks"],
+[436,"Withstand","に耐える","高温に耐える","Withstand a high temperature"],
+[437,"Dimension","大きさ、寸法","部屋の大きさを測る","Measure the dimensions of a room"],
+[438,"Ignore","を無視する","説得力のある証拠を無視する","Ignore compelling evidence"],
+[439,"Delinquent","延滞の、滞納している","滞納金を送る","Send a delinquent payment"],
+[440,"Refute","に反論する、論破する","主張に反論する","Refute a claim"],
+[441,"Anecdote","逸話","心温まる逸話","A warm anecdote"],
+[442,"Curator","館長、管理者","図書館長","A curator of the library"],
+[443,"Landscaping","造園","造園会社","A landscaping company"],
+[444,"Ancestor","祖先、先祖","信長は私の遠い祖先である","Nobunaga is a distant ancestor of mine"],
+[445,"Meteorologist","気象学者","国の気象学者たちによれば","According to government meteorologists"],
+[446,"Precipitation","降水量","年間降水量が多い","Have a high annual precipitation"],
+[447,"Infancy","幼児期","幼児期に","During infancy"],
+[448,"Reciprocal","相互の","相互援助","Reciprocal assistance"],
+[449,"Fervid","白熱する、熱烈な","白熱する議論","A fervid discussion"],
+[450,"Ratify","を承認する、批准する","提案を承認する","Ratify a proposal"],
+[451,"Bargain","交渉する","よりよい賃金を求めて交渉する","Bargain for better pay"],
+[452,"Discontinue","を中止する、中断する","製造を中止する","Discontinue manufacturing"],
+[453,"Input","意見、情報、入力","我々のサービスに対するご意見を尊重する","Value your input on our service"],
+[454,"Immense","膨大な、巨大な、莫大な","膨大な知識","An immense amount of knowledge"],
+[455,"Overly","あまりにも、過度に","あまりにも野心的な目標","An overly ambitious goal"],
+[456,"Safeguard","を保護する、守る","天然資源を保護する","Safeguard natural resources"],
+[457,"Cherish","を大切にする","夢を大切にする","Cherish a dream"],
+[458,"Instinct","才能、素質、本能、直感","芸術に対する才能","An instinct for art"],
+[459,"Impede","を妨げる、遅らせる","考古学的研究を妨げる","Impede archaeological research"],
+[460,"Sumptuous","豪華な、贅沢な","豪華な祝宴","A sumptuous feast"],
+[461,"Demonstrate","を実証する、実演する","並外れた指導力を実証する","Demonstrate exceptional leadership"],
+[462,"Expenditure","費用、出費、支出","旅費を払い戻す","Reimburse travel expenditures"],
+[463,"Scholarship","奨学金","奨学金を出す","Fund a scholarship"],
+[464,"Allegedly","伝えられるところでは","伝えられるところではその会社は倒産するかもしれない","Allegedly, the business may go into bankruptcy"],
+[465,"Negligence","不注意、怠慢","単なる不注意による事故","An accident due to mere negligence"],
+[466,"Remit","を送金する","海外に送金する","Remit money overseas"],
+[467,"Dismantle","を取り壊す、解体する、分解する","ビルを取り壊す","Dismantle a building"],
+[468,"Laborious","骨が折れる、労力を要する","骨の折れる仕事を引き受ける","Accept a laborious undertaking"],
+[469,"Minutely","詳細に、綿密に","詳細に描く","Minutely describe"],
+[470,"Sojourn","滞在、逗留","短い滞在の後","After a brief sojourn"],
+[471,"Acknowledge","を認める","彼女は才能ある彫刻家として認められている","She is acknowledged as a gifted sculptor"],
+[472,"Forthcoming","今度の、来たるべき","今度の展示会","A forthcoming exhibition"],
+[473,"Mentor","良き指導者","良き指導者となる","Serve as a mentor"],
+[474,"Creature","生き物","水中の生き物を見る","Witness aquatic creatures"],
+[475,"Flawless","完璧な、欠点のない","完璧な英語を話す","Speak flawless English"],
+[476,"Subordinate","部下","直属の部下","An immediate subordinate"],
+[477,"Embody","を具現化する、具体化する","理想を具現化する","Embody an ideal"],
+[478,"Meager","わずかな、貧弱な","わずかな資源","Meager resources"],
+[479,"Indulge","ふける、熱中する","思い出にふける","Indulge in reminiscences"],
+[480,"Uneventful","平穏無事な、順調な","平穏無事な生活を送る","Lead an uneventful life"],
+[481,"Consensus","意見の一致、総意","について意見の一致を見る","Reach consensus on"],
+[482,"File","を申し立てる、提出する","苦情を申し立てる","File a complaint"],
+[483,"Numerous","たくさんの、多数の","たくさんの蔵書","A numerous collection of books"],
+[484,"Discrete","控えめな、慎重な、賢明な","控えめな質問をする","Ask discrete questions"],
+[485,"Playwright","脚本家","多作の脚本家","A prolific playwright"],
+[486,"Rectangular","長方形の","丸いテーブルと長方形のテーブル","A round table and a rectangular one"],
+[487,"Arbitrary","任意の、恣意的な","任意の決定","An arbitrary decision"],
+[488,"Oriented","志向の、本位の","キャリア志向の人","A career oriented person"],
+[489,"Breach","違反、侵害","契約違反","Breach of the contract"],
+[490,"Sprout","発芽する","発芽し始める","Begin to sprout"],
+[491,"Diagnose","を診断する","正確に病気を診断する","Diagnose a disease accurately"],
+[492,"Imminent","差し迫った","差し迫った危機に瀕して","In imminent danger"],
+[493,"Statistically","統計的に","統計的に証明されている","Be statistically proven"],
+[494,"Epidemic","伝染、蔓延","伝染病を撲滅する","Eradicate an epidemic"],
+[495,"Pioneering","先駆的な、草分け的な","先駆的な役割を果たす","Play a pioneering role"],
+[496,"Vacate","を立ち退く、明け渡す","部屋を立ち退く","Vacate a room"],
+[497,"Garner","を集める、獲得する","世界中の注目を集める","Garner attention around the world"],
+[498,"Pros and cons","良い点と悪い点、賛否","良い点と悪い点を比較する","Weigh up the pros and cons"],
+[499,"Acumen","洞察力、慧眼","優れた洞察力","Remarkable acumen"],
+[500,"Adversity","逆境、苦境、困難な出来事","逆境を克服する","Overcome adversity"],
+[501,"appropriate","適切な、ふさわしい","適切な服装","Appropriate attire"],
+[502,"persuade","を説得する、説得して～させる","住人に退去するよう説得する","Persuade residents to vacate"],
+[503,"sturdy","頑丈な、ゆるぎない","優雅にして頑丈な家具","Elegant yet sturdy furniture"],
+[504,"fragrance","香り、芳香","芳醇な香りを放つ","Emit a rich fragrance"],
+[505,"proven","実証済みの、証明された","実証済みの能力","A proven capability"],
+[506,"suffice","十分である","2、3日あれば十分です","A few days will suffice"],
+[507,"allure","魅力、魅惑","外国旅行の魅力","The allure of foreign travel"],
+[508,"wage","を行う","守備よくキャンペーンを行う","Wage successful campaigns"],
+[509,"particularize","を詳しく述べる、特定化する","事故について詳しく述べる","Particularize an incident"],
+[510,"visionary","先見の明がある、洞察力のある","先見の明があるリーダー","A visionary leader"],
+[511,"boundary","境界線、境界","地理上の境界線","Geographical boundaries"],
+[512,"gauge","を測る、測定する","正確に距離を測る","Accurately gauge the distance"],
+[513,"partial","部分的な、不公平な","これは部分的な解決にしかならない","This will be only a partial solution"],
+[514,"accountable","責任がある","製品に対して責任がある","Be held accountable for the products"],
+[515,"offset","を補う、相殺する","損失を補う","Offset a loss"],
+[516,"somewhat","ある程度、幾分","ある程度理解できる","Be somewhat understandable"],
+[517,"honorable","立派な、著名な","立派な行為","Honorable conduct"],
+[518,"seemingly","一見、見たところ","一見複雑に見える問題","Seemingly complicated problems"],
+[519,"eclipse","日食、月食","日食を観察する","Observe a solar eclipse"],
+[520,"insolvent","支払い不能の、破産した","支払い不能になる","Become insolvent"],
+[521,"convince","を納得させる、確信させる","SがVであると皆を納得させる","Convince everyone that S V"],
+[522,"illegal","違法の、不法の","違法アクセスを防止する","Prevent illegal access"],
+[523,"refrigerator","冷蔵庫","新しい冷蔵庫を購入する","Purchase a new refrigerator"],
+[524,"cease","をやめる、中止する","取引をやめる","Cease to do business"],
+[525,"restructuring","再編、再構築","会社全体の再編","Restructuring of the entire company"],
+[526,"unconditionally","無条件で","無条件で返品を受け付ける","Unconditionally accept returns"],
+[527,"acoustically","音響的に","音響的に満足のいく会場","An acoustically satisfying venue"],
+[528,"narrative","物語","信じられない物語","An incredible narrative"],
+[529,"arcane","難解な","難解な法律用語","The arcane language of the law"],
+[530,"disseminate","を広める、発信する","重要な情報を広める","Disseminate vital information"],
+[531,"dependent","依存している","輸入に依存している","Be dependent on imports"],
+[532,"possessions","所有物","貴重品","Valuable possessions"],
+[533,"span","に渡る、またぐ","50年に渡る記憶","A memory that spans 50 years"],
+[534,"marked","著しい、際立った","著しい進歩を遂げる","Make marked advances"],
+[535,"prestige","名声、信望","専門家としての名声を得る","Gain professional prestige"],
+[536,"totally","完全に、全く","あなたに完全に同意する","Totally agree with you"],
+[537,"fatal","致命的な、重大な","致命的な誤解を招く","Trigger a fatal misunderstanding"],
+[538,"storefront","店先、店頭","店先の日除け","Storefront awnings"],
+[539,"cardinal","極めて重要な、基本的な","極めて重要な問題","A cardinal issue"],
+[540,"momentous","重大な、重要な","重大な転換期を迎える","Reach a momentous turning point"],
+[541,"applaud","拍手喝采する","観客は熱狂的に拍手喝采した","The audience applauded enthusiastically"],
+[542,"proximity","近いこと、近接","～のすぐ近くに","In immediate proximity to"],
+[543,"unprecedented","前例のない","前例のない経済成長を達成する","Achieve unprecedented economic growth"],
+[544,"obscure","不明瞭な、曖昧な","全く不明瞭である","Be utterly obscure"],
+[545,"sewage","下水、汚水","下水設備を改善する","Improve a sewage system"],
+[546,"walk-in","飛び込みの、予約なしの","飛び込み客","A walk-in customer"],
+[547,"mingle","交流する","多様な人々と交流する","Mingle with a diverse range of people"],
+[548,"trait","特徴、特色","際立った特徴","A distinctive trait"],
+[549,"inherent","生まれつきの、本来の","生まれつきの芸術的才能","Inherent artistic abilities"],
+[550,"rundown","概要報告、概要","簡潔な概要報告","A brief rundown"],
+[551,"aging","老朽化した、年老いた","老朽化した施設","Aging facilities"],
+[552,"fuel","を煽る、助長する","～についての懸念を煽る","Fuel concerns about"],
+[553,"thrive","繁栄する、成功する","激しい競争にも関わらず繁栄する","Thrive despite fierce competition"],
+[554,"conclusive","最終的な、決定的な","最終的な決断を下す","Make a conclusive decision"],
+[555,"readily","容易に","容易に入手可能である","Be readily accessible"],
+[556,"turnaround","好転、転換","驚くべき好転を成し遂げる","Achieve a remarkable turnaround"],
+[557,"ballot","投票","～に投票する","Cast a ballot for"],
+[558,"tangible","明確な、触れることができる","明確な証拠","Tangible proof"],
+[559,"astute","鋭い、明敏な","鋭い分析技術","Astute analytical skills"],
+[560,"knowingly","故意に、知り顔で","故意に議事進行を遅らせる","Knowingly delay the proceedings"],
+[561,"erect","を設置する、建設する、設立する","足場を設置する","Erect scaffoldings"],
+[562,"optimistic","楽観的な","将来について楽観的だ","Be optimistic about the future"],
+[563,"vital","極めて重要な、不可欠な","極めて重要な役割を果たす","Play a vital role"],
+[564,"moisture","湿気、湿度","湿気に強い","Be resistant to moisture"],
+[565,"semester","学期","学期末に","At the end of a semester"],
+[566,"yearn","熱望する、切望する","歌手になりたいと熱望する","Yearn to be a singer"],
+[567,"replenish","を補充する","トレイに紙を補充する","Replenish paper in a tray"],
+[568,"vulnerable","受けやすい、弱い","感染しやすい","Be vulnerable to infection"],
+[569,"deficiency","不足、欠陥、欠乏","数量の不足","Deficiency in quantity"],
+[570,"savvy","抜け目ない、機転が利く","抜け目ない起業家","A savvy entrepreneur"],
+[571,"foresee","を予測する、予想する","市場の動向を予測する","Foresee market trends"],
+[572,"renewable","再生可能な","再生可能エネルギー資源","Renewable energy resources"],
+[573,"vacancy","欠員","欠員を埋める","Fill up a vacancy"],
+[574,"stabilize","を安定させる","脆い関係を安定させる","Stabilize a fragile relationship"],
+[575,"universal","世界中の、普遍的な","世界的に認められる","Acquire universal recognition"],
+[576,"withhold","を保留する、抑える","財政支援を保留する","Withhold financial support"],
+[577,"dawn","幕開け、夜明け、始まり","新時代の幕開けに","At the dawn of a new era"],
+[578,"uncover","を明らかにする、発見する","真実を明らかにする","Uncover the truth"],
+[579,"ameliorate","を改善する、改良する","サービスの質を改善する","Ameliorate service quality"],
+[580,"incisive","鋭い、辛辣な","鋭い分析","An incisive analysis"],
+[581,"crucial","極めて重大な、不可欠な","極めて重大な局面","A crucial phase"],
+[582,"easily","間違いなく、明らかに","間違いなく最も人気のあるバンド","Easily the most popular band"],
+[583,"home","ある、所在する","珍しい生き物がいる","Be home to rare creatures"],
+[584,"adorn","を飾る","花でテーブルを飾る","Adorn the table with flowers"],
+[585,"pending","懸案の、未解決の","懸案の決定事項","A pending decision"],
+[586,"successive","連続的な","3世代続けて","For three successive generations"],
+[587,"compassion","思いやり、同情","他人への思いやり","Compassion toward others"],
+[588,"scores","たくさん、多数","たくさんの人々","Scores of people"],
+[589,"marketable","市場性の高い、よく売れる","市場性の高い製品を輸入する","Import marketable products"],
+[590,"retrospective","回顧展","画家バンクシーの回顧展","A retrospective of painter Banksy"],
+[591,"intensive","集中的な","集中訓練プログラム","An intensive training program"],
+[592,"majestic","雄大な、壮大な","雄大な山の風景","Majestic mountain scenery"],
+[593,"semi-annual","半年ごとの、年2回の","半年ごとの販売報告書を提出する","Submit a semi-annual sales report"],
+[594,"diameter","直径","直径3メートルある","Have a diameter of 3 meters"],
+[595,"scent","香り、芳香","エキゾチックな香り","Exotic scent"],
+[596,"thesis","論文、主張","卒業論文を書く","Write a graduation thesis"],
+[597,"conceive","を思いつく、着想する","大胆な計画を思いつく","Conceive a bold plan"],
+[598,"personable","親しみやすい、魅力的な","親しみやすい性格","A personable character"],
+[599,"devastate","に大打撃を与える、荒廃させる","米の生産に大打撃を与える","Devastate rice production"],
+[600,"enchanting","魅惑的な","魅惑的な城を思い出す","Remember an enchanting castle"],
+[601,"aspiring","志望の、意欲的な","若い作家志望者たち","Aspiring young writers"],
+[602,"centerpiece","最大の目玉、中心、最重要","大英博物館の最大の目玉","The centerpiece of the British Museum"],
+[603,"enthusiastic","熱狂的な、熱心な","熱狂的なファン","An enthusiastic admirer"],
+[604,"controversial","物議を醸している、議論の余地がある","物議を醸したノンフィクション小説","A controversial non-fiction novel"],
+[605,"drought","干ばつ","延々と続く干ばつ","A prolonged spell of drought"],
+[606,"metropolitan","大都市の","大都市圏に住む","Dwell in metropolitan areas"],
+[607,"authoritative","信頼できる、権威ある","信頼できる情報","Authoritative information"],
+[608,"demanding","要求の厳しい、困難な","要求の厳しい顧客","A demanding customer"],
+[609,"conspicuous","人目を引く、際立つ","人目を引く超高層ビルを設計する","Design a conspicuous skyscraper"],
+[610,"impromptu","即興の、準備なしの","即興の演説をする","Make an impromptu speech"],
+[611,"altogether","全部で、全く、完全に","全部で7人の候補者がいる","There are seven candidates altogether"],
+[612,"departure","離脱、逸脱、辞任","伝統から離脱する","Mark a departure from tradition"],
+[613,"investigate","を調査する、研究する","潜在的な問題を調査する","Investigate a potential problem"],
+[614,"consumption","消費、消耗、飲食","エネルギー消費量を減らす","Reduce energy consumption"],
+[615,"fruitful","実り多い、有益な","実り多い話し合いをする","Have a fruitful discussion"],
+[616,"pediatrician","小児科医","小児科医の診察を受ける","Consult a pediatrician"],
+[617,"ascribe","のおかげだとする、せいにする","社長は自分の成功は幸運のおかげだという","The president ascribes his success to luck"],
+[618,"discretion","自由裁量、思慮分別","～の自由裁量で","At the discretion of"],
+[619,"industrious","勤勉な","勤勉な科学者","An industrious scientist"],
+[620,"predicament","窮地、苦境","窮地に直面する","Be confronted with a predicament"],
+[621,"boost","を促進する、高める","会社の士気を促進する","Boost company morale"],
+[622,"managerial","経営の、経営者の、管理者の","経営の経験","Managerial experience"],
+[623,"understaffed","人手不足の","人手不足の病院","An understaffed hospital"],
+[624,"implicit","暗黙の、黙示的な","暗黙の同意","Implicit consent"],
+[625,"plunge","急落する","円に対してドルが急落した","The dollar plunged against the yen"],
+[626,"stimulate","を促す、刺激する","復興を促す","Stimulate a renaissance"],
+[627,"criterion","基準","意思決定の普遍的な基準","A universal criterion for decision making"],
+[628,"expressly","はっきりと、明確に","はっきりと同意する","Expressly agree"],
+[629,"admonish","に諭す、忠告する","遅刻しないよう生徒に諭す","Admonish each student not to be late"],
+[630,"tenacious","粘り強い","粘り強い交渉の後に","After tenacious negotiations"],
+[631,"attractive","魅力的な、人を引きつける","パッケージの魅力的なデザイン","Attractive designs for packaging"],
+[632,"deserve","に値する","昇進に値する","Deserve a promotion"],
+[633,"minimize","を最小限にする","悪影響を最小限にする","Minimize adverse effects"],
+[634,"astound","を驚かせる","その知らせに驚く","Be astounded at the news"],
+[635,"geological","地質学の","地質学的見地から","From a geological viewpoint"],
+[636,"straightforward","率直な","率直な態度","A straightforward attitude"],
+[637,"affectionate","愛情のこもった","本当に愛情のこもった手紙","A sincerely affectionate letter"],
+[638,"neatly","きちんと","きちんとした服装をしている","Be neatly dressed"],
+[639,"discharge","を退院させる","患者を退院させる","Discharge a patient"],
+[640,"strenuous","大変な、骨が折れる、激しい","大変な努力をする","Make strenuous efforts"],
+[641,"acceptance","合格、採用、受諾、承諾、受容","合格通知","An acceptance letter"],
+[642,"expansive","広大な、広範囲の","広大な山の風景","Expansive mountain scenery"],
+[643,"precaution","予防","適切な予防措置を講じる","Take adequate precautions"],
+[644,"dean","学部長","新しい学部長を任命する","Appoint a new dean"],
+[645,"multilingual","多言語を使える","多言語を使えるアシスタントを採用する","Recruit a multilingual assistant"],
+[646,"screen","をふるいにかける、選抜する","就職志願者をふるいにかける","Screen job applicants"],
+[647,"disregard","を無視する","この手紙は無視してください","Please disregard this letter"],
+[648,"progressively","徐々に、革新的に","徐々に減少する","Progressively diminish"],
+[649,"encyclopedia","百科事典","百科事典を編纂する","Compile an encyclopedia"],
+[650,"succulent","ジューシーな、水分の多い","ジューシーなステーキ","A succulent steak"],
+[651,"benchmark","基準、尺度","安全性の基準","A benchmark on safety"],
+[652,"diplomatic","外交の、外交上の","外交関係を危うくする","Jeopardize diplomatic relations"],
+[653,"probationary","試用期間中の","試用期間中に","During the probationary period"],
+[654,"condominium","マンション","超高層マンション","A skyscraper condominium"],
+[655,"engaging","人を引きつける、魅力のある","人を引きつける実演","An engaging demonstration"],
+[656,"superficially","表面に、一見、上辺では","表面的には似ている","Be superficially similar"],
+[657,"garnish","に付け合わせる、添える、を飾る","ローストポテトに玉ねぎを付け合わせる","Garnish roasted potato with onions"],
+[658,"monotonous","単調な、変化のない、退屈な","単調な繰り返し作業","Monotonous and repetitive work"],
+[659,"downside","欠点、否定的な側面","多少の欠点は多めに見る","Overlook a few downsides"],
+[660,"meadow","牧草地","牧草地を通り抜ける","Walk through a meadow"],
+[661,"commemorate","を祝う、記念する","30周年を祝う","Commemorate the 30th anniversary"],
+[662,"frequent","を頻繁に訪れる","裁判所を頻繁に訪れる","Frequent the courthouse"],
+[663,"pharmaceutical","製薬の、薬学の","製薬会社","A pharmaceutical company"],
+[664,"dormitory","寮、寄宿舎","社員寮で生活する","Live in a company dormitory"],
+[665,"preventive","予防の、防止する","予防措置","Preventive measures"],
+[666,"rustic","田舎の","田舎暮らしをする","Lead a rustic life"],
+[667,"collective","集団の、共通の","集団の決定","A collective decision"],
+[668,"memoir","回顧録","ラビットは回顧録を執筆した","Rabbit wrote his memoir"],
+[669,"coherent","理路整然とした、一貫した","理路整然とした文章を書く","Write a coherent sentence"],
+[670,"flammable","可燃性の、燃えやすい","可燃性廃棄物","Flammable garbage"],
+[671,"comprise","で構成される、から成る","6名のメンバーで構成される","Comprise six members"],
+[672,"endangered","絶滅寸前の","絶滅寸前の動物を救う","Save an endangered animal"],
+[673,"veterinarian","獣医","経験豊富な獣医","An experienced veterinarian"],
+[674,"decisive","決定的な、断固とした","決定的な優位点","A decisive advantage"],
+[675,"leftover","食べ残し","パーティーの食べ残しを処分する","Dispose of leftovers from a party"],
+[676,"purify","を浄化する","排水を浄化する","Purify waste water"],
+[677,"defeat","に打ち勝つ、を駄目にする、退ける","現職に打ち勝つ","Defeat an incumbent"],
+[678,"inadvertently","うっかり、不注意で","うっかり財布を置き忘れる","Inadvertently misplace a wallet"],
+[679,"flair","才能","言語に対する非凡な才能","An extraordinary flair for language"],
+[680,"maneuverable","操作しやすい","操作しやすい船","A maneuverable vessel"],
+[681,"contingent","不測の、不慮の","不測の事態","Contingent circumstances"],
+[682,"exposure","さらされていること、露出","直射日光にさらされていること","Exposure to direct sunlight"],
+[683,"substitute","を代わりに使う","ポテトの代わりにライスを使う","Substitute rice for potatoes"],
+[684,"outskirts","郊外","ロンドンの郊外に住む","Live on the outskirts of London"],
+[685,"pastime","娯楽、気晴らし","娯楽に耽る","Indulge in a pastime"],
+[686,"widening","拡張、広げること","道路の拡張","Widening of a road"],
+[687,"chilly","肌寒い","肌寒い部屋","A chilly room"],
+[688,"infringe","を侵害する","商標を侵害する","Infringe a trademark"],
+[689,"inhibit","を抑制する","雑草の成長を抑制する","Inhibit growth of weeds"],
+[690,"upheaval","激変、大変動","経済の激変を乗り切る","Weather an economic upheaval"],
+[691,"applicable","適用できる","あらゆる状況に適用できる","Be applicable to all situations"],
+[692,"eye-catching","人目を引く","人目を引く広告をデザインする","Design an eye-catching advertisement"],
+[693,"otherwise","そうでなければ","別段の記載がない限り","Unless otherwise specified"],
+[694,"ascend","を上る","階段を上る","Ascend a staircase"],
+[695,"heritage","遺産、伝統、財産、地位","文化遺産の保護","Preservation of cultural heritage"],
+[696,"uniformly","均一に、一様に","均一に色付けされた","Be uniformly colored"],
+[697,"conceal","を隠す","失敗を隠す","Conceal failure"],
+[698,"populous","人口が多い、人口密度の高い","人口の多い地域","A populous district"],
+[699,"advent","到来、出現","新時代の到来","The advent of a new era"],
+[700,"extraordinary","素晴らしい、並外れた","並外れた才能","An extraordinary talent"],
+[701,"decorative","装飾の、装飾的な","装飾照明","Decorative illumination"],
+[702,"grasp","を理解する","新しい概念を理解する","Grasp a new concept"],
+[703,"significant","重要な、意義深い、かなりの","重要な成果を生み出す","Yield significant results"],
+[704,"criticism","批判、批評","批判の余地がない","Be beyond criticism"],
+[705,"revamp","を見直す、改良する","マーケティング戦略を見直す","Revamp a marketing strategy"],
+[706,"symbolic","象徴の、象徴的な","繁栄を象徴している","Be symbolic of prosperity"],
+[707,"susceptible","受けやすい","ダメージを受けやすい","Be susceptible to damage"],
+[708,"verge","寸前、縁","倒産寸前で","On the verge of bankruptcy"],
+[709,"ardent","熱烈な、熱心な","熱烈な支持者","An ardent advocate"],
+[710,"proponent","支持者、提唱者","熱心な支持者","An enthusiastic proponent"],
+[711,"amend","を修正する、改正する","現行契約を修正する","Amend an existing contract"],
+[712,"foremost","第一の、最初の、最高の","〜の第一人者","The foremost authority on"],
+[713,"reunion","同窓会","同窓会パーティーを開催する","Throw a reunion party"],
+[714,"originate","始発する、始まる、起源である","グラスゴー中央駅が始発駅である","Originate at Glasgow Central"],
+[715,"revolving","回転する","回転扉","A revolving door"],
+[716,"timber","木材、材木","木材不足に直面する","Face a timber shortage"],
+[717,"evacuate","を避難させる","住民を避難させる","Evacuate inhabitants"],
+[718,"resourceful","機転がきく、才覚がある","機転がきくスタッフ","Resourceful staff"],
+[719,"amicable","友好的な","友好的な合意に達する","Reach an amicable agreement"],
+[720,"reiterate","を繰り返し述べる","重要性を繰り返し述べる","Reiterate the significance"],
+[721,"diversify","を多様化する、多角化する","エネルギー源を多様化する","Diversify energy sources"],
+[722,"insufficient","不十分な","不十分な認識を示す","Show insufficient awareness"],
+[723,"stunning","素晴らしい、驚くほど美しい","素晴らしい眺め","A stunning view"],
+[724,"affirm","を断言する、支持する","それが真実だと断言する","Affirm that it is true"],
+[725,"interpersonal","対人の、対人関係の","対人能力を養う","Cultivate interpersonal skills"],
+[726,"reliance","依存、信用","輸入への過度の依存","Excessive reliance on imports"],
+[727,"detach","を取り外す、切り離す","演台からマイクを取り外す","Detach the microphone from the podium"],
+[728,"proposition","提案、意見、計画","提案を支持する","Champion a proposition"],
+[729,"barring","がなければ","奇跡がなければ","Barring a miracle"],
+[730,"sparsely","わずかに、まばらに","人口がわずかな地域で","In sparsely populated areas"],
+[731,"confine","範囲、制約、領域","〜の範囲内で","Within the confines of"],
+[732,"effective","日付で","11月15日付で","Effective November 15th"],
+[733,"prominent","著名な、優れた、目立つ","国際的に著名な芸術家","An internationally prominent artist"],
+[734,"massive","大規模な、大量の、巨大な","大規模なキャンペーン","A massive campaign"],
+[735,"twist","意外な展開","事態の意外な展開","Twist of events"],
+[736,"yield","を生む、産出する","莫大な利益を生む","Yield immense benefits"],
+[737,"intangible","無形の、触れることができない","無形文化財","Intangible cultural properties"],
+[738,"set forth","を明記する、説明する","条件を明記する","Set forth the terms and conditions"],
+[739,"depreciation","低下、下落","資産価値の低下","Depreciation in asset value"],
+[740,"embarrassing","当惑させる、厄介な","当惑させる質問","An embarrassing question"],
+[741,"immediate","直属の、即座の、直接の","直属の部下","An immediate subordinate"],
+[742,"patronage","愛顧、支援","あなたのご愛顧に感謝いたします","We appreciate your patronage"],
+[743,"throw","を開催する、催す","パーティーを開催する","Throw a party"],
+[744,"eminence","著名、高位、卓越","人間工学の分野で著名になる","Gain eminence in ergonomics"],
+[745,"prolong","を伸ばす、延長する","締め切りを伸ばす","Prolong a deadline"],
+[746,"unbiased","公平な","公平な意見","An unbiased opinion"],
+[747,"irritate","をイライラさせる","イライラさせないで","Don't irritate me"],
+[748,"sympathetically","共感して、同情して","共感して話を聞く","Listen sympathetically"],
+[749,"legitimate","もっともな、合法の","もっともな苦情","A legitimate complaint"],
+[750,"recount","について詳しく話す","エピソードについて詳しく話す","Recount an episode"],
+[751,"apparently","外見上、一見","外見上は同じである","Be apparently identical"],
+[752,"inception","初め、開始、発端、創立","〜の初めに","At the inception of"],
+[753,"seldom","めったに〜ない、ほとんど〜ない","めったに遅刻しない","Seldom arrive late"],
+[754,"antibiotic","抗生物質、抗生剤","抗生物質を処方する","Prescribe antibiotics"],
+[755,"pertinent","関連する、適切な","関連する情報","Pertinent information"],
+[756,"studio","ワンルームマンション","ワンルームマンションを借りる","Rent a studio"],
+[757,"liquidate","を清算する","資産を清算する","Liquidate assets"],
+[758,"tranquil","のどかな","小さくてのどかな村に滞在する","Stay in a small tranquil village"],
+[759,"indifference","無関心、無差別","無関心な態度をとる","Adopt an attitude of indifference"],
+[760,"receptive","受容力のある、理解のある","新しい考えに対して受容力がある","Be receptive to new ideas"],
+[761,"hospitality","親切なもてなし、歓待、接客","親切なもてなしに心から感謝します","Your hospitality is sincerely appreciated"],
+[762,"mill","工場","巨大な製紙工場を建てる","Build a huge paper mill"],
+[763,"sizable","多額な、相当大きい","多額な寄付を受け取る","Receive a sizable donation"],
+[764,"commendable","賞賛すべき","あなたの熱意は大いに賞賛に値する","Your enthusiasm is highly commendable"],
+[765,"exclaim","叫ぶ、感嘆する","大喜びで叫ぶ","Exclaim with delight"],
+[766,"supreme","絶大な、最高の、最上位の","絶大な信頼を寄せて","With supreme confidence"],
+[767,"brisk","活発な","活発なビジネス","A brisk business"],
+[768,"relinquish","を放棄する、あきらめる","ライセンスを放棄する","Relinquish a license"],
+[769,"dignity","威厳、品格","ものすごい威厳を込めて話す","Speak with tremendous dignity"],
+[770,"penetrate","に侵入する、を見抜く","アジア市場に侵入する","Penetrate the Asian market"],
+[771,"compel","強制的に〜させる","辞職せざるを得ない","Be compelled to resign"],
+[772,"inexperienced","経験不足の、未熟な","経験の浅い大工","An inexperienced carpenter"],
+[773,"lifting","持ち上げること","重機を持ち上げること","Lifting of heavy machinery"],
+[774,"alteration","寸法直し","〜の寸法直しをする","Make alterations to"],
+[775,"obey","に従う","避難指示に従う","Obey evacuation instructions"],
+[776,"thoughtful","思いやりのある、思慮深い","他人に対して思いやりがある","Be thoughtful of other people"],
+[777,"alumni","同窓生、卒業生","同窓会を開催する","Hold an alumni reunion"],
+[778,"sound","健全な、理にかなった","構造的に健全である","Be structurally sound"],
+[779,"acute","鋭い、重大な","鋭い所見を述べる","Make an acute observation"],
+[780,"nullify","を無効にする、取り消す","暫定的な契約を無効にする","Nullify a tentative agreement"],
+[781,"appetizer","前菜","前菜からデザートまで","From appetizers to desserts"],
+[782,"fare","食事","美味しい食事","Delicious fare"],
+[783,"overdue","期限を過ぎた","支払いは2ヶ月期限を過ぎている","The payment is two months overdue"],
+[784,"precedent","前例、先例","前例を引用する","Quote a precedent"],
+[785,"salute","敬礼、挨拶","敬礼を送る","Send a salute"],
+[786,"validate","を有効にする、実証する","パスポートを有効にする","Validate a passport"],
+[787,"hamper","を妨げる","経済成長を妨げる","Hamper economic growth"],
+[788,"upscale","高級な","高級ホテル","An upscale hotel"],
+[789,"intimate","親密な、詳しい、くつろげる","親密な雰囲気","An intimate atmosphere"],
+[790,"secluded","人里離れた、偏鄙な","人里離れた村","A secluded village"],
+[791,"course","口座、授業","無料のオンライン口座を提供する","Offer free online courses"],
+[792,"figure","考える、理解する","実行可能な計画を考える","Figure out a viable plan"],
+[793,"ventilate","を換気する","部屋を換気する","Ventilate a room"],
+[794,"dismiss","を解雇する、解散する、捨てる","従業員を解雇する","Dismiss an employee"],
+[795,"recognizable","分かりやすい、認識できる","分かりやすい目印","A recognizable landmark"],
+[796,"subtle","微妙な、かすかな","微妙な違い","Subtle difference"],
+[797,"fragment","断片、かけら、一編","古文書の断片","Fragments of an ancient writing"],
+[798,"texture","質感、手触り","滑らかな質感","Smooth texture"],
+[799,"irrational","不合理な、理不尽な","不合理な差別","Irrational discrimination"],
+[800,"well-rounded","多彩な、博識な、幅広い","多才な学生","A well-rounded student"],
+[801,"authorize","を認める、権限を与える","例外を認める","Authorize an exception"],
+[802,"botanical","植物の","植物園","A botanical garden"],
+[803,"environment","環境、情勢","環境を汚染する","Contaminate the environment"],
+[804,"await","を待つ","次の指示を待つ","Await further instructions"],
+[805,"inaugurate","を開始する、就任させる","新しいキャンペーンを開始する","Inaugurate a new campaign"],
+[806,"mere","ほんの、単なる、全くの","ほんの数分で","In mere minutes"],
+[807,"chronological","年代順の","年代順に","In chronological order"],
+[808,"practitioner","開業者、開業医","開業医","A medical practitioner"],
+[809,"dwindle","縮小する、減少する","急速に減少する","Dwindle rapidly"],
+[810,"horticulture","園芸、園芸学","園芸を一から学ぶ","Learn horticulture from scratch"],
+[811,"alternative","代わりの、代替の","代わりの候補者を探す","Search for an alternative candidate"],
+[812,"complimentary","無料の","無料のシャトルバスサービス","Complimentary shuttle bus service"],
+[813,"exceptional","並外れた、例外的な","並外れた指導力を発揮する","Demonstrate exceptional leadership"],
+[814,"amplify","を拡大する、増強する","知識を拡大する","Amplify knowledge"],
+[815,"depiction","描写","生き生きとした描写","A lively depiction"],
+[816,"instructive","有益な、教育的な","有益な講義","An instructive lecture"],
+[817,"deterioration","悪化","著しい悪化を引き起こす","Cause significant deterioration"],
+[818,"exploit","を活用する、利用する","全ての入手可能な資源を活用する","Exploit all available resources"],
+[819,"disembark","降りる","飛行機から降りる","Disembark from the plane"],
+[820,"measurable","重大な、予測できる","重大な影響を与える","Exert a measurable influence"],
+[821,"apprentice","見習い","見習いの配管工","An apprentice plumber"],
+[822,"distribute","を配布する、分配する","社内報を配布する","Distribute a newsletter"],
+[823,"forfeit","を失う、喪失する","財産を失う","Forfeit the property"],
+[824,"equivalent","同じ、同等の","2つの理論は全く同じというわけではない","The two theories aren't exactly equivalent"],
+[825,"perceive","に気づく、を理解する","かすかな変化に気づく","Perceive a subtle change"],
+[826,"robust","強固な、頑丈な","強固な事業計画を考案する","Devise a robust business plan"],
+[827,"contradict","と矛盾する","初期の調査結果と矛盾する","Contradict early findings"],
+[828,"practically","ほとんど、も同然","ほとんど不可能である","Be practically impossible"],
+[829,"conceivable","あり得る、想像できる","理論上あり得る可能性","Theoretically conceivable possibility"],
+[830,"redress","を是正する","間違いを是正する","Redress a mistake"],
+[831,"assortment","取り揃えたもの、詰め合わせ","輸入を取り揃えたもの","An assortment of imported goods"],
+[832,"consolidate","を統合する、強化する","2社を1社に統合する","Consolidate two companies into one"],
+[833,"mandatory","強制の、義務の、必須の","強制参加の会議","A mandatory meeting"],
+[834,"densely","密集して","人口が密集している市","A densely populated city"],
+[835,"invaluable","非常に貴重な","非常に貴重な経験","Invaluable experience"],
+[836,"skyscraper","超高層ビル、摩天楼","世界で最も高い超高層ビル","The world's highest skyscraper"],
+[837,"discourage","に思いとどまらせる","人々に外出を思いとどまらせる","Discourage people from going outside"],
+[838,"milestone","画期的な出来事、節目","画期的な出来事を祝う","Celebrate a milestone"],
+[839,"bewilder","を当惑させる","完全に当惑している","Be totally bewildered"],
+[840,"facade","正面","大聖堂の正面","The facade of the cathedral"],
+[841,"designate","を指定する、指名する","指定された駐車場で","In a designated parking area"],
+[842,"guarantee","を保証する","100%の満足を保証します","We guarantee you 100% satisfaction"],
+[843,"outgoing","退任する、社交的な","退任する社長","The outgoing president"],
+[844,"competent","有能な、満足のいく","有能な部下","A competent subordinate"],
+[845,"prevail","普及する、勝る","その慣習は特定の地域に普及している","The custom prevails in specific areas"],
+[846,"prone","しやすい、しがちである","怒りやすい","Be prone to get angry"],
+[847,"arborist","樹木医、樹木専門家","樹木医として働く","Work as an arborist"],
+[848,"miscellaneous","種々雑多な","雑費","Miscellaneous expenses"],
+[849,"invariable","不変の、変わらない","不変の事実を証明する","Demonstrate the invariable truth"],
+[850,"terrain","地形、地帯","岩の多い地形","Rocky terrain"],
+[851,"assume","を負う、引き受ける、想定する","責任を負わない","Assume no responsibility"],
+[852,"encounter","に出会う、遭遇する","困難に出会う","Encounter difficulties"],
+[853,"picturesque","絵のように美しい、生き生きとした","絵のように美しい村","A picturesque village"],
+[854,"exquisite","洗練された、素晴らしい","洗練された装飾","Exquisite ornamentation"],
+[855,"questionable","疑わしい","疑わしい証拠","Questionable evidence"],
+[856,"symptom","症状、兆候、きざし","アレルギー症状を悪化させる","Aggravate allergic symptoms"],
+[857,"hinder","を妨げる","構造改革を妨げる","Hinder structural reform"],
+[858,"odometer","走行距離計","走行距離計を点検する","Inspect an odometer"],
+[859,"ergonomics","人間工学","人間工学的観点から","From an ergonomics viewpoint"],
+[860,"perpetual","永遠の","永遠に価値のある","Be of perpetual value"],
+[861,"conserve","を保護する、保存する","天然資源を保護する","Conserve natural resources"],
+[862,"effortlessly","楽々と、簡単に","楽々と機械を組み立てる","Effortlessly assemble a machine"],
+[863,"reluctant","渋々の、気が進まない","提案を渋々受け入れる","Be reluctant to accept a proposal"],
+[864,"continent","大陸","2つの大陸にまたがって","Across two continents"],
+[865,"overwhelming","圧倒的な","圧倒的な人気","Overwhelming popularity"],
+[866,"set aside","をとっておく、蓄えておく","〜のための資金をとっておく","Set aside funds for"],
+[867,"bountiful","豊富な、ボリュームのある","豊富な資源","Bountiful resources"],
+[868,"fluorescent","蛍光の、蛍光性の","蛍光ジャケットを着用する","Wear a fluorescent jacket"],
+[869,"arrogant","横柄な、傲慢な","横柄な言葉遣い","An arrogant language"],
+[870,"probe","を調べる、精査する","原因を調べる","Probe the cause"],
+[871,"circumstance","状況、環境、事情","どんな状況でも〜しない","Under no circumstances"],
+[872,"increasingly","ますます、次第に","ますます人気が出てくる","Become increasingly popular"],
+[873,"troop","一団、一座、一行","舞踏団を招く","Invite a dance troop"],
+[874,"external","外部の、外の","外部の人材を活用する","Use external human resources"],
+[875,"plot","筋書き、筋","複雑な筋書きの小説","A novel with a complicated plot"],
+[876,"subsidize","に助成金を出す、支援する","中小企業に助成金を出す","Subsidize small and medium enterprises"],
+[877,"cozy","居心地の良い","居心地の良いレストラン","A cozy restaurant"],
+[878,"likelihood","可能性、見込み","成功の可能性","Likelihood of success"],
+[879,"levy","を課す","輸出に税を課す","Levy taxes on exports"],
+[880,"submissive","従順な","に対して従順である","Be submissive to"],
+[881,"assure","を保証する、断言する","情報の正確さを保証する","Assure the accuracy of information"],
+[882,"extensive","広範囲の、徹底的な","広範囲の市場調査を実施する","Conduct extensive market research"],
+[883,"struggle","奮闘する","業績を回復させようと奮闘する","Struggle to turn around"],
+[884,"adjoining","隣接した","隣接した地域","An adjoining region"],
+[885,"meaningful","有意義な、意味のある","多くの有意義な経験","Lots of meaningful experience"],
+[886,"resolution","解像度、決議、決定","画像の解像度","Resolution of the images"],
+[887,"conducive","貢献する","成功に貢献する","Be conducive to success"],
+[888,"undermine","を衰退させる","強固な関係を衰退させる","Undermine a solid relationship"],
+[889,"mundane","ありふれた、日常の、平凡な","ありふれた出来事","Mundane events"],
+[890,"recollect","を回想する、思い出す、集める","過去の思い出を回想する","Recollect the memories of the past"],
+[891,"customary","普通の、慣習の","普通の手順","A customary procedure"],
+[892,"insulation","絶縁、断熱","断熱材を設置する","Install insulation"],
+[893,"solicit","を求める、懇願する","寄付金を求める","Solicit donations"],
+[894,"ailing","不振にあえぐ","不振にあえいでいる会社","An ailing company"],
+[895,"gigantic","巨大な、莫大な","巨大なエジプト建築を鑑賞する","Appreciate a gigantic Egyptian architecture"],
+[896,"trademark","商標、トレードマーク","商標を侵害する","Infringe a trademark"],
+[897,"approachable","親しみやすい、近づきやすい","親しみやすいフロント係","An approachable receptionist"],
+[898,"gently","そっと、優しく","埃をそっと拭き取る","Wipe the dust off gently"],
+[899,"annotate","に注釈をつける","本に注釈をつける","Annotate a book"],
+[900,"imprudent","軽率な、思慮に欠ける","軽率な振る舞い","Imprudent behavior"],
+[901,"Durability","耐久性、耐久力","比類なき耐久性を持つ","Be unparalleled in durability"],
+[902,"Influential","影響力のある","極めて影響力のある人物","An immensely influential figure"],
+[903,"Number","～を数える","990人の参加者を数える","Number 990 attendees"],
+[904,"Dispatch","～を派遣する、送る","代表団を派遣する","Dispatch a delegation"],
+[905,"Momentary","一瞬の、瞬間の","一瞬の躊躇","A momentary hesitation"],
+[906,"Retention","保持、記憶、記憶力","顧客の保持","Customer retention"],
+[907,"Exhaustive","徹底的な","徹底的な研究","Exhaustive research"],
+[908,"Revoke","～を取り消す、無効にする","ライセンスを取り消す","Revoke a license"],
+[909,"Aficionado","熱狂的なファン、愛好者","ジャズの熱狂的なファン","Jazz aficionados"],
+[910,"Embroider","～に刺繍をする","鮮やかに刺繍されたスカーフ","A brilliantly embroidered scarf"],
+[911,"Convey","～を伝える、伝達する","感謝の気持ちを伝える","Convey one's appreciation"],
+[912,"Internationally","国際的に","国際的に競争力のある","Be internationally competitive"],
+[913,"Substantial","かなりの、十分な、相当な","かなりの増益","A substantial increase in profits"],
+[914,"Consistency","一貫性、一致、調和","一貫性の欠如","The lack of consistency"],
+[915,"Responsive","反応が早い","顧客のニーズに対する反応が早い","Be responsive to a client's needs"],
+[916,"Stretch","範囲、期間","長い範囲の道路","A long stretch of road"],
+[917,"Apparatus","器具、装置","装置を改良する","Improve an apparatus"],
+[918,"Intervene","仲裁する、間に入る","紛争を仲裁する","Intervene in a dispute"],
+[919,"Deforestation","森林破壊、森林伐採","森林破壊を回避する","Avoid deforestation"],
+[920,"Proliferate","増殖する、急速に普及する","急速なスピードで増殖する","Proliferate at a rapid rate"],
+[921,"Determine","～を決定する、見極める","適切な目標を決定する","Determine an appropriate goal"],
+[922,"Knowledgeable","博識な、聡明な、精通している","博識な批評家","A knowledgeable critic"],
+[923,"Procedure","手順、手続き、やり方","複雑な手続きを簡素化する","Streamline complex procedures"],
+[924,"Courthouse","裁判所","古くなった裁判所を取り壊す","Demolish an old courthouse"],
+[925,"Proficient","熟練の","熟練のイラストレーター","A proficient illustrator"],
+[926,"Vivid","鮮明な","鮮明で印象的な絵画","A vivid and impressive picture"],
+[927,"Discomfort","不快、不安","著しい不快を感じる","Feel marked discomfort"],
+[928,"Lure","引きつける、誘い出す","新規顧客を引きつける","Lure a new customer"],
+[929,"Equivocal","曖昧な、はっきりしない","曖昧な回答を避ける","Avoid an equivocal answer"],
+[930,"Reconcile","～を調停する、和解させる","紛争を調停する","Reconcile a dispute"],
+[931,"Favorite","お気に入りの、好みの","お気に入りの曲","A favorite melody"],
+[932,"Outstanding","傑出した、未払いの","傑出した芸術家","An outstanding artist"],
+[933,"Supervise","～を監督する、管理する","大工場を監督する","Supervise a large factory"],
+[934,"Brief","～に概略を伝える、手短に話す","従業員に職務の概略を伝える","Brief employees on their duties"],
+[935,"Ornament","装飾品","宝石のような装飾品","Ornaments such as jewelry"],
+[936,"Word of mouth","口コミの","口コミの広告","Word-of-mouth advertising"],
+[937,"Indicative","暗示する、示す","景気の後退を暗示する","Be indicative of recession"],
+[938,"Roam","散策する、歩き回る","裏庭を散策する","Roam in the backyard"],
+[939,"Bustling","活気のある、せわしい","活気のある市場","A bustling market"],
+[940,"Observant","観察の鋭い、厳守する","自然に対する観察が鋭い","Be observant of nature"],
+[941,"Acquaintance","知人、知識","仕事上の知人","A business acquaintance"],
+[942,"Permanent","永続的な、常設の","永続的な職","A permanent job"],
+[943,"Voice","～を表明する、声に出す","～に対する懸念を表明する","Voice concerns about"],
+[944,"Fundamental","基本的な、根本的な","基本構造","Fundamental structures"],
+[945,"Reservoir","貯水池","貯水池と灌漑施設を作る","Build reservoir and irrigation systems"],
+[946,"Undergraduate","学部生、大学生","大学の学部生","A university undergraduate"],
+[947,"Edible","食用の、食べられる","食用の花","Edible flower"],
+[948,"Stubborn","頑固な、断固とした","頑固な汚れを取り除く","Remove stubborn stains"],
+[949,"Improvise","～を即興でやる","即興で受諾演説をする","Improvise an acceptance speech"],
+[950,"Integrity","完全性、統一性、誠実、高潔","データの完全性を保証する","Ensure the integrity of data"],
+[951,"Forecast","～を予想する、予測する","大雪を予想する","Forecast a heavy snowfall"],
+[952,"Maximum","最大限","最大100人のゲストを収容する","Accommodate a maximum of 100 guests"],
+[953,"Willingness","いとわないこと、進んでやること","海外出張もいとわないこと","Willingness to travel internationally"],
+[954,"Conjunction","協力、共同、結合、関連","専門家と協力して働く","Work in conjunction with experts"],
+[955,"Officiate","司会をする、職務を果たす","月次ミーティングの司会をする","Officiate at monthly meetings"],
+[956,"Tutorial","個別指導、指導書","段階的な個別指導","Step-by-step tutorials"],
+[957,"Integrate","～を統合する、組み入れる","通信網を統合する","Integrate the communications network"],
+[958,"Tedious","退屈な","退屈な仕事を我慢する","Tolerate a tedious job"],
+[959,"Incomparable","比類なき、比較にならない","比類なき美しさを誇る","Boast incomparable beauty"],
+[960,"Uncanny","並外れた、優れた","並外れた正確さ","Uncanny accuracy"],
+[961,"Availability","利用できること、可能性、都合","インターネットアクセスの利用できること","Availability of Internet access"],
+[962,"Different","様々な、種々の","様々なアプローチをしてみる","Try different approaches"],
+[963,"Usher","案内係","案内係を務める","Serve as an usher"],
+[964,"Province","州、領域","オンタリオ州","The province of Ontario"],
+[965,"Solution","解決、解決策","可能な解決策を協議する","Discuss possible solutions"],
+[966,"Withdraw","～を撤回する、引き出す","提案を撤回する","Withdraw a proposal"],
+[967,"Disperse","～を分散させる、広める","群衆を分散させる","Disperse a crowd"],
+[968,"Vow","～を誓う","満点を取ると誓う","Vow to achieve a perfect score"],
+[969,"Combustible","可燃性の","可燃性物質","Combustible materials"],
+[970,"Sublime","卓越した、素晴らしい、崇高な","卓越したアイデアを思いつく","Conceive a sublime idea"],
+[971,"Exercise","～を使う、発揮する","注意する","Exercise caution"],
+[972,"Preparatory","準備の、予備の","準備期間に","During the preparatory period"],
+[973,"Select","厳選した、優良な","厳選した食材のみを使う","Use only select ingredients"],
+[974,"Liability","責任、義務","賠償責任を負う","Assume liability for compensation"],
+[975,"Sole","靴底","頑丈な靴底","A sturdy sole"],
+[976,"Zealous","熱望した、熱心な","成功を熱望している","Be zealous for success"],
+[977,"Aptitude","才能、素質、習性","芸術的才能","An artistic aptitude"],
+[978,"Sheer","全くの、完全な、純粋の","全くの偶然から","By sheer coincidence"],
+[979,"Desperate","絶望的な、深刻な、必死の","絶望的な状況にある","Be in desperate trouble"],
+[980,"Stationary","動かない、安定している","動かないでいる","Remain stationary"],
+[981,"Boast","～を誇る","素晴らしい景観を誇る","Boast a gorgeous view"],
+[982,"Coating","上塗り、コーティング","防水加工の上塗り","A waterproof coating"],
+[983,"Revolutionary","革命的な","革命的な大進歩を遂げる","Achieve a revolutionary breakthrough"],
+[984,"Dissatisfaction","不満、不平","何の不満もなく","Without any dissatisfaction"],
+[985,"Shade","色合い、色調","同じ色で、もっと暗い色合い","Darker shade of the same color"],
+[986,"Tolerable","耐えられる、我慢できる","耐えられる状況下で","In a tolerable situation"],
+[987,"Momentum","勢い","勢いを取り戻す","Recover the momentum"],
+[988,"Wholly","全く、完全に","全く非現実的な考え","A wholly impractical idea"],
+[989,"Apprehensive","心配している","悪天候が心配だ","Be apprehensive about the inclement weather"],
+[990,"Sensible","賢明な、思慮深い","賢明な忠告","Sensible advice"],
+[991,"Founder","創立者、創設者","創立者かつ前社長","Founder and former president"],
+[992,"Harvest","収穫、収穫高","豊富な収穫","An abundant harvest"],
+[993,"Lessen","～を緩和する、減少させる","副作用を緩和する","Lessen a side effect"],
+[994,"Priceless","非常に貴重な","非常に貴重な経験","Priceless experience"],
+[995,"Suite","一式、一組","家具一式","A suite of furniture"],
+[996,"Utmost","最大限の、最高の","最も重要である","Be of utmost importance"],
+[997,"Resolute","断固とした、毅然とした","断固とした態度","A resolute attitude"],
+[998,"Subtitle","字幕、副題","字幕付きの映画を見る","Watch a film with subtitles"],
+[999,"Iterate","～を繰り返し言う、反復する","要点を繰り返し言う","Iterate a point"],
+[1000,"Wholesome","健康に良い、健全な","健康に良い自然食品","Wholesome and natural food"]
+    ];
+
+    const allWords = rawData.map(r => ({
+        no: r[0],
+        en: r[1],
+        jp: r[2],
+        jp_ex: r[3],
+        en_ex: r[4]
+    }));
+
+    // Variables
+    let queue = [];
+    let currentIdx = 0;
+    let correctCount = 0;
+    let history = [];
+    let isProcessing = false;
+    let currentMode = 'normal'; // normal, stock, retry
+    let stock = new Set();
+    let isVoiceOn = true;
+    let selectedQCount = 10;
+    const synth = window.speechSynthesis;
+
+    // --- Init ---
+    window.onload = function() {
+        loadStock();
+        updateStockDisplay();
+        setupRangeOptions();
+        
+        // Voice init trick
+        if (synth && synth.onvoiceschanged !== undefined) {
+            synth.onvoiceschanged = () => {};
+        }
+    };
+
+    function setupRangeOptions() {
+        const select = document.getElementById('range-select');
+        select.innerHTML = "";
+        
+        // Create 100-word blocks
+        // Total 1000 words -> 10 blocks
+        const total = 1000;
+        const blockSize = 100;
+        
+        for (let i = 1; i <= total; i += blockSize) {
+            const end = Math.min(i + blockSize - 1, total);
+            const opt = document.createElement('option');
+            opt.value = `${i}-${end}`;
+            opt.innerText = `No. ${i} - ${end}`;
+            select.appendChild(opt);
+        }
+    }
+
+    function loadStock() {
+        const saved = localStorage.getItem('kuroFureStock');
+        if (saved) { try { stock = new Set(JSON.parse(saved)); } catch(e) { stock = new Set(); } }
+    }
+    function saveStock() {
+        localStorage.setItem('kuroFureStock', JSON.stringify(Array.from(stock)));
+        updateStockDisplay();
+    }
+    function updateStockDisplay() {
+        const el = document.getElementById('stock-display');
+        const btn = document.getElementById('btn-start-stock');
+        el.innerText = stock.size;
+        btn.disabled = (stock.size === 0);
+        btn.innerText = (stock.size === 0) ? "苦手リストは空です" : "苦手リストから出題";
+    }
+
+    // --- Voice ---
+    function initVoice() {
+        if (synth) {
+            const u = new SpeechSynthesisUtterance("");
+            u.volume = 0;
+            synth.speak(u);
+        }
+    }
+    function speak(text) {
+        if (!isVoiceOn || !synth) return;
+        synth.cancel();
+        const uttr = new SpeechSynthesisUtterance(text);
+        uttr.lang = 'en-US';
+        uttr.rate = 1.0; 
+        synth.speak(uttr);
+    }
+    function replayVoice() {
+        if (!queue[currentIdx]) return;
+        // Force voice on temporarily
+        const temp = isVoiceOn;
+        isVoiceOn = true; 
+        speak(queue[currentIdx].en);
+        isVoiceOn = temp;
+    }
+
+    // --- Quiz Logic ---
+    function selectQNum(num, el) {
+        selectedQCount = num;
+        const btns = document.querySelectorAll('.q-btn');
+        btns.forEach(b => b.classList.remove('selected'));
+        el.classList.add('selected');
+    }
+
+    function checkVoiceSetting() {
+        isVoiceOn = document.getElementById('voice-toggle').checked;
+        if (isVoiceOn) initVoice();
+    }
+
+    function startNormalQuiz() {
+        checkVoiceSetting();
+        const rangeVal = document.getElementById('range-select').value;
+        const parts = rangeVal.split('-');
+        const s = parseInt(parts[0]);
+        const e = parseInt(parts[1]);
+
+        const targets = allWords.filter(w => w.no >= s && w.no <= e);
+        if (targets.length === 0) { alert("対象単語がありません"); return; }
+        
+        setupQuiz(targets, selectedQCount, 'normal');
+    }
+
+    function startStockQuiz() {
+        checkVoiceSetting();
+        const targets = allWords.filter(w => stock.has(w.no));
+        setupQuiz(targets, 50, 'stock'); // Stock mode caps at 50
+    }
+
+    function startRetryWrong() {
+        checkVoiceSetting();
+        const wrongNos = history.filter(h => !h.correct).map(h => h.no);
+        const targets = allWords.filter(w => wrongNos.includes(w.no));
+        if (targets.length === 0) return;
+        setupQuiz(targets, targets.length, 'retry');
+    }
+
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function setupQuiz(targets, maxCount, mode) {
+        currentMode = mode;
+        let pool = [...targets];
+        queue = [];
+        
+        // If pool is smaller than maxCount, loop it? Or just reduce count?
+        // Let's reduce count if pool is smaller, UNLESS normal mode where we might want random picks from block
+        if (mode === 'normal') {
+            for(let i=0; i<maxCount; i++) {
+                if(pool.length === 0) pool = [...targets]; // Refresh if exhausted
+                const r = Math.floor(Math.random() * pool.length);
+                queue.push(pool[r]);
+                pool.splice(r, 1);
+            }
+        } else {
+            // Stock/Retry: just shuffle and take max
+            shuffle(pool);
+            queue = pool.slice(0, maxCount);
+        }
+
+        currentIdx = 0;
+        correctCount = 0;
+        history = [];
+        isProcessing = false;
+
+        document.getElementById('setup-view').classList.add('hidden');
+        document.getElementById('result-view').classList.add('hidden');
+        document.getElementById('quiz-view').classList.remove('hidden');
+
+        showNext();
+    }
+
+    function showNext() {
+        if (currentIdx >= queue.length) {
+            finish();
+            return;
+        }
+
+        const w = queue[currentIdx];
+        document.getElementById('progress').innerText = `${currentIdx + 1} / ${queue.length}`;
+        document.getElementById('score').innerText = `正解: ${correctCount}`;
+        
+        // Show English
+        document.getElementById('q-text').innerText = w.en;
+
+        if (isVoiceOn) {
+            speak(w.en);
+        }
+
+        // Generate choices
+        let choices = [w.jp];
+        let safety = 0;
+        while(choices.length < 8 && safety < 500) {
+            const r = allWords[Math.floor(Math.random() * allWords.length)];
+            // Don't pick same meaning
+            if(!choices.includes(r.jp) && r.jp !== w.jp) choices.push(r.jp);
+            safety++;
+        }
+        shuffle(choices);
+
+        const grid = document.getElementById('choices');
+        grid.innerHTML = "";
+        
+        choices.forEach(c => {
+            const btn = document.createElement('div');
+            btn.className = 'choice-btn';
+            btn.innerText = c;
+            btn.onclick = () => answer(c, w);
+            // Remove tap highlight delay
+            btn.addEventListener('touchstart', function(){}, {passive:true});
+            grid.appendChild(btn);
+        });
+    }
+
+    function answer(choice, word) {
+        if (isProcessing) return;
+        isProcessing = true;
+
+        const isCorrect = (choice === word.jp);
+        if (isCorrect) correctCount++;
+        
+        // Stock handling
+        if (!isCorrect) {
+            if (!stock.has(word.no)) { stock.add(word.no); saveStock(); }
+        } else {
+            if (currentMode === 'stock' || currentMode === 'retry') {
+                if (stock.has(word.no)) { stock.delete(word.no); saveStock(); }
+            }
+        }
+
+        history.push({
+            no: word.no, en: word.en, jp: word.jp, selected: choice, correct: isCorrect,
+            jp_ex: word.jp_ex, en_ex: word.en_ex // Pass examples to history
+        });
+
+        // Small delay for feedback visual if you wanted, but user asked for simple flow
+        setTimeout(() => {
+            currentIdx++;
+            isProcessing = false;
+            showNext();
+        }, 80);
+    }
+
+    function finish() {
+        document.getElementById('quiz-view').classList.add('hidden');
+        document.getElementById('result-view').classList.remove('hidden');
+        
+        document.getElementById('final-score').innerText = `${correctCount} / ${queue.length}`;
+        
+        const retryBtn = document.getElementById('btn-retry-wrong');
+        const wrongCount = history.filter(h => !h.correct).length;
+        if (wrongCount > 0) {
+            retryBtn.style.display = 'flex';
+            retryBtn.innerText = `間違えた ${wrongCount}問 をやり直す`;
+        } else {
+            retryBtn.style.display = 'none';
+        }
+
+        const listEl = document.getElementById('review-list');
+        listEl.innerHTML = "";
+
+        history.forEach(h => {
+            const li = document.createElement('li');
+            li.className = 'result-item';
+            if(!h.correct) li.classList.add('incorrect');
+            
+            const mark = h.correct ? '<span class="val-ok">○</span>' : '<span class="val-ng">×</span>';
+            const stockBadge = stock.has(h.no) ? `<span class="stock-badge">Stock</span>` : '';
+            
+            // Wrong answer display
+            let detailHTML = '';
+            if (!h.correct) {
+                detailHTML = `<div class="res-info"><span style="font-size:0.8rem;color:#666;">あなたの回答:</span><span class="val-ans">${h.selected}</span></div>`;
+            }
+
+            // Example sentence display
+            const exHTML = `
+                <div class="res-examples">
+                    <div class="ex-en">${h.en_ex || "(No Example)"}</div>
+                    <div class="ex-jp">${h.jp_ex || ""}</div>
+                </div>
+            `;
+
+            li.innerHTML = `
+                <div class="res-header">
+                    <span>No.${h.no} ${stockBadge}</span>
+                    <span style="font-size:1.2rem">${mark}</span>
+                </div>
+                <div class="res-word" onclick="speak('${h.en.replace(/'/g, "\'")}')" style="cursor:pointer">
+                    🔊 ${h.en}
+                </div>
+                <div class="res-info">
+                    <span class="val-ok">${h.jp}</span>
+                </div>
+                ${detailHTML}
+                ${exHTML}
+            `;
+            listEl.appendChild(li);
+        });
+        
+        updateStockDisplay();
+    }
+
+    function confirmQuit() {
+        if(confirm("中断してトップに戻りますか？")) {
+            location.reload();
+        }
+    }
+</script>
+</body>
+</html>
