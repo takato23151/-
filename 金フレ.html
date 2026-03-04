@@ -117,6 +117,8 @@
         .val-ok { color: var(--correct-text); font-weight: bold; }
         .val-ng { color: var(--wrong-text); font-weight: bold; text-decoration: line-through; }
         .stock-badge { display: inline-block; background: var(--secondary); color: white; font-size: 0.6rem; padding: 2px 6px; border-radius: 10px; margin-left: 5px; vertical-align: middle; }
+        .res-row { display: flex; align-items: center; gap: 8px; }
+        .res-lbl { width: 40px; font-weight: bold; color: #666; font-size: 0.85rem; }
     </style>
 </head>
 <body>
@@ -2199,15 +2201,15 @@
                 pool.splice(r, 1);
             }
         } else if (mode === 'stock') {
+           // ▼ここから修正
+            // 先にシャッフルしてランダム性を確保（sort内でのMath.randomはエラーの原因になるため避ける）
+            shuffle(pool);
             // ストック数が多い単語を優先して抽出
-            pool.sort((a, b) => {
-                const countDiff = (stock[b.no] || 0) - (stock[a.no] || 0);
-                // 回数が同じ場合は少しだけランダム性を加える
-                return countDiff !== 0 ? countDiff : (Math.random() - 0.5);
-            });
+            pool.sort((a, b) => (stock[b.no] || 0) - (stock[a.no] || 0));
             queue = pool.slice(0, maxCount);
-            // 抽出後は出題順が回数順にならないようにシャッフル
+            // 抽出後は出題順が回数順にならないように再度シャッフル
             shuffle(queue);
+            // ▲ここまで修正
         } else {
             // retry
             shuffle(pool);
@@ -2351,12 +2353,12 @@
                 : '';
             const stockBadge = stock[h.no] ? `<span class="stock-badge">Stock (${stock[h.no]}回)</span>` : '';
 
-            li.innerHTML = `
+           li.innerHTML = `
                 <div class="res-header">
                     <span>No.${h.no} ${stockBadge}</span>
                     <span style="font-size:1.2rem">${mark}</span>
                 </div>
-                <div class="res-word" onclick="speak('${h.en.replace(/'/g, "\\'")}')" style="cursor:pointer">🔊 ${h.en}</div>
+                <div class="res-word" onclick="speak('${h.en.replace(/'/g, "\\\\'")}')" style="cursor:pointer">🔊 ${h.en}</div>
                 <div class="res-detail">
                     <div class="res-row">
                         <span class="res-lbl" style="width:40px;font-weight:bold;color:#666">正解</span>
@@ -2379,4 +2381,5 @@
 </script>
 </body>
 </html>
+
 
