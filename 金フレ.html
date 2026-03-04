@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>金フレ 8択 (マーク小・重み付きStock)</title>
+    <title>金フレ 8択 (マーク小)</title>
     <style>
         :root { 
             --primary: #007aff; --secondary: #5856d6; --bg: #f2f2f7; --card: #ffffff; 
@@ -32,7 +32,7 @@
             background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;
         }
 
-        .q-select-container { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+        .q-select-container { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 20px; }
         .q-btn {
             flex: 1; padding: 12px 0; border: 1px solid #d1d1d6; background: #fff; border-radius: 10px;
             font-weight: bold; color: #666; cursor: pointer; transition: all 0.2s; font-size: 1rem;
@@ -42,7 +42,7 @@
             background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 2px 8px rgba(0,122,255,0.3);
         }
 
-        .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; padding: 10px 0; border-top: 1px solid #eee; }
+        .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 10px 0; border-top: 1px solid #eee; border-bottom: 1px solid #eee; }
         .toggle-label { font-size: 1rem; font-weight: bold; }
         .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
         .switch input { opacity: 0; width: 0; height: 0; }
@@ -91,7 +91,7 @@
         .hidden { display: none !important; }
         .msg { font-size: 0.85rem; text-align: center; margin-top: 10px; font-weight: bold; color: var(--wrong-text); }
         
-        /* Subliminal Feedback Overlay */
+        /* Subliminal Feedback Overlay - Smaller */
         #feedback-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; align-items: center; justify-content: center;
@@ -125,11 +125,23 @@
 
 <div class="container">
     <div id="setup-view">
-        
+        <div class="card stock-card">
+            <h2>苦手リスト (Stock)</h2>
+            <div class="stock-count" id="stock-display">0</div>
+            <button class="btn-stock" id="btn-start-stock" onclick="startStockQuiz()">
+                苦手リストから出題
+            </button>
+        </div>
+
         <div class="card">
-            <div class="section-title">共通設定</div>
+            <div class="section-title">学習範囲</div>
             <div class="input-group">
-                <label>出題数 (通常/Stock 共通)</label>
+                <label>範囲を選択してください</label>
+                <select id="range-selector"></select>
+            </div>
+            
+            <div class="input-group">
+                <label>出題数</label>
                 <div class="q-select-container">
                     <div class="q-btn selected" onclick="selectQNum(10, this)">10</div>
                     <div class="q-btn" onclick="selectQNum(20, this)">20</div>
@@ -137,6 +149,7 @@
                     <div class="q-btn" onclick="selectQNum(100, this)">100</div>
                 </div>
             </div>
+
             <div class="toggle-row">
                 <span class="toggle-label">音声読み上げ</span>
                 <label class="switch">
@@ -144,27 +157,10 @@
                     <span class="slider"></span>
                 </label>
             </div>
-        </div>
 
-        <div class="card">
-            <div class="section-title">通常学習</div>
-            <div class="input-group">
-                <label>範囲を選択してください</label>
-                <select id="range-selector"></select>
-            </div>
-            <button class="btn-primary" onclick="startNormalQuiz()">通常学習をスタート</button>
+            <button class="btn-primary" onclick="startNormalQuiz()">スタート</button>
             <p id="setup-msg" class="msg"></p>
         </div>
-
-        <div class="card stock-card">
-            <h2>苦手リスト (Stock)</h2>
-            <div class="stock-count" id="stock-display">0</div>
-            <p style="font-size: 0.8rem; color: #666; margin-top:-5px; margin-bottom:15px;">※複数回間違えた単語ほど優先的に出題されます</p>
-            <button class="btn-stock" id="btn-start-stock" onclick="startStockQuiz()">
-                苦手リストから出題
-            </button>
-        </div>
-
     </div>
 
     <div id="quiz-view" class="hidden">
@@ -176,7 +172,7 @@
         </div>
         <div class="grid" id="choices"></div>
         <div style="text-align:center; margin-top:30px;">
-             <button onclick="confirmQuit()" style="background:none; border:none; color:#999; width:auto; padding:10px;">中断してトップに戻る</button>
+             <button onclick="confirmQuit()" style="background:none; border:none; color:#999; width:auto; padding:10px;">中断して戻る</button>
         </div>
     </div>
 
@@ -201,8 +197,7 @@
 </div>
 
 <script>
-    // ▼ コピペする際は、複数の配列を1つの大きな配列にまとめてください ▼
-    const allWords = []; const allWords = [
+    const allWords = [
   {"no": 1, "en": "anyway", "jp": "とにかく", "ex_en": "Let's try anyway.", "ex_jp": "とにかくやってみよう"},
   {"no": 2, "en": "following", "jp": "～のあとで、次の", "ex_en": "Following the meeting, we had lunch.", "ex_jp": "会議のあと我々はランチをとった"},
   {"no": 3, "en": "refer", "jp": "参照する", "ex_en": "Please refer to the map.", "ex_jp": "地図を参照してください"},
@@ -302,9 +297,7 @@
   {"no": 97, "en": "pleased", "jp": "満足して", "ex_en": "I'm pleased with the service.", "ex_jp": "私はそのサービスに満足しています"},
   {"no": 98, "en": "instruction", "jp": "指示", "ex_en": "Follow the instructions", "ex_jp": "指示に従う"},
   {"no": 99, "en": "latest", "jp": "最新の", "ex_en": "The latest traffic report", "ex_jp": "最新の交通情報"},
-  {"no": 100, "en": "bill", "jp": "請求書、請求書を送る", "ex_en": "Receive a bill", "ex_jp": "請求書を受け取る"}
-];
-[
+  {"no": 100, "en": "bill", "jp": "請求書、請求書を送る", "ex_en": "Receive a bill", "ex_jp": "請求書を受け取る"},
   {"no": 101, "en": "development", "jp": "開発", "ex_en": "Research and development", "ex_jp": "研究開発"},
   {"no": 102, "en": "accounting", "jp": "会計", "ex_en": "An accounting firm", "ex_jp": "会計事務所"},
   {"no": 103, "en": "benefit", "jp": "てあて、利益を得る", "ex_en": "Company benefits", "ex_jp": "会社のてあて"},
@@ -504,9 +497,7 @@
   {"no": 297, "en": "significant", "jp": "かなりの", "ex_en": "A significant increase in profits", "ex_jp": "かなりの利益増"},
   {"no": 298, "en": "educational", "jp": "教育の", "ex_en": "An educational program", "ex_jp": "教育プログラム"},
   {"no": 299, "en": "decline", "jp": "断る、減少", "ex_en": "Decline an invitation", "ex_jp": "招待を断る"},
-  {"no": 300, "en": "preparation", "jp": "準備", "ex_en": "In preparation for an event", "ex_jp": "イベントの準備のために"}
-]
-[
+  {"no": 300, "en": "preparation", "jp": "準備", "ex_en": "In preparation for an event", "ex_jp": "イベントの準備のために"},
   {"no": 301, "en": "suitable", "jp": "適した", "ex_en": "Suitable for all ages", "ex_jp": "全年齢に適している"},
   {"no": 302, "en": "priority", "jp": "優先", "ex_en": "Safety is our top priority", "ex_jp": "安全は我々の最優先事項です"},
   {"no": 303, "en": "brief", "jp": "簡潔な、要点を伝える", "ex_en": "A brief survey", "ex_jp": "簡単な調査"},
@@ -931,9 +922,7 @@
   {"no": "column 1＆2", "en": "stroller", "jp": "ベビーカー", "ex_en": "", "ex_jp": ""},
   {"no": "column 1＆2", "en": "treadmill", "jp": "ランニングマシン", "ex_en": "", "ex_jp": ""},
   {"no": "column 1＆2", "en": "vending machine", "jp": "自動販売機", "ex_en": "", "ex_jp": ""},
-  {"no": "column 1＆2", "en": "x-ray", "jp": "X線、レントゲン", "ex_en": "", "ex_jp": ""}
-]
-[
+  {"no": "column 1＆2", "en": "x-ray", "jp": "X線、レントゲン", "ex_en": "", "ex_jp": ""},
   {"no": 401, "en": "supervisor", "jp": "上司", "ex_en": "Speak with a supervisor", "ex_jp": "上司と話す"},
   {"no": 402, "en": "storage", "jp": "保管", "ex_en": "A storage facility", "ex_jp": "保管施設"},
   {"no": 403, "en": "invoice", "jp": "請求書", "ex_en": "Send an invoice", "ex_jp": "請求書を送る"},
@@ -1133,9 +1122,7 @@
   {"no": 597, "en": "remark", "jp": "言葉、述べる", "ex_en": "Opening remarks", "ex_jp": "開会の言葉"},
   {"no": 598, "en": "weekday", "jp": "平日", "ex_en": "A weekday schedule", "ex_jp": "平日のスケジュール"},
   {"no": 599, "en": "personalized", "jp": "個人に合わせた", "ex_en": "Personalized customer service", "ex_jp": "個人に合わせた顧客サービス"},
-  {"no": 600, "en": "stain", "jp": "染み、染みをつける", "ex_en": "Remove stains from clothes", "ex_jp": "服から染みを取り除く"}
-]
-[
+  {"no": 600, "en": "stain", "jp": "染み、染みをつける", "ex_en": "Remove stains from clothes", "ex_jp": "服から染みを取り除く"},
   {"no": 601, "en": "pursue", "jp": "追い求める", "ex_en": "pursue a dream", "ex_jp": "夢を追い求める"},
   {"no": 602, "en": "seasonal", "jp": "季節の", "ex_en": "A seasonal menu", "ex_jp": "季節のメニュー"},
   {"no": 603, "en": "presence", "jp": "存在", "ex_en": "A strong presence on social media", "ex_jp": "SNS上での強い存在感"},
@@ -1468,9 +1455,7 @@
   {"no": "supplement 4＆5", "en": "version", "jp": "バージョン", "ex_en": "an online version", "ex_jp": "オンラインバージョン"},
   {"no": "supplement 4＆5", "en": "virtual", "jp": "バーチャル", "ex_en": "a virtual tour of a building", "ex_jp": "建物のバーチャルツアー"},
   {"no": "supplement 4＆5", "en": "wing", "jp": "ウィング", "ex_en": "the east wing of the building", "ex_jp": "ビルの東ウィング"},
-  {"no": "supplement 4＆5", "en": "workshop", "jp": "ワークショップ", "ex_en": "lead a workshop", "ex_jp": "ワークショップの進行をする"}
-]
-[
+  {"no": "supplement 4＆5", "en": "workshop", "jp": "ワークショップ", "ex_en": "lead a workshop", "ex_jp": "ワークショップの進行をする"},
   {"no": 701, "en": "on-site", "jp": "敷地内の", "ex_en": "The hotel has on-site parking.", "ex_jp": "そのホテルには敷地内の駐車場がある。"},
   {"no": 702, "en": "inconvenience", "jp": "不便", "ex_en": "We apologize for the inconvenience.", "ex_jp": "ご不便をおかけして申し訳ございません。"},
   {"no": 703, "en": "mentor", "jp": "相談相手", "ex_en": "Melany will be your mentor.", "ex_jp": "メラニーがあなたの相談相手になります。"},
@@ -1770,415 +1755,280 @@
   {"no": 997, "en": "onboarding", "jp": "新人研修", "ex_en": "Onboarding process.", "ex_jp": "新人研修プロセス。"},
   {"no": 998, "en": "resilience", "jp": "回復力", "ex_en": "Resilience in a difficult situation.", "ex_jp": "困難な状況での回復力。"},
   {"no": 999, "en": "reinvent", "jp": "生き方を変える", "ex_en": "It's time to reinvent yourself.", "ex_jp": "今こそ生き方を変える時だ。"},
-  {"no": 1000, "en": "exponentially", "jp": "飛躍的に", "ex_en": "Your TOEIC score will increase exponentially.", "ex_jp": "あなたのTOEICスコアは飛躍的に伸びるでしょう。"}
-]
-{
-  "supplement_6": [
-    {"no": 1, "en": "accommodate", "jp": "要望に応える、収容する、受け入れる", "ex_en": "・accommodate a request", "ex_jp": "・要望に応える"},
-    {"ex_en": "・The hotel can accommodate 300 guests.", "ex_jp": "・そのホテルは300名の客を収容できる。"},
-    {"no": 2, "en": "account", "jp": "口座、顧客、考慮", "ex_en": "・open a bank account", "ex_jp": "・銀行口座を開設する"},
-    {"ex_en": "・an account representative", "ex_jp": "・顧客担当者"},
-    {"ex_en": "・take into account", "ex_jp": "・考慮する"},
-    {"no": 3, "en": "address", "jp": "対処する、話しかける、演説", "ex_en": "・address concerns", "ex_jp": "・懸念に対処する"},
-    {"ex_en": "・address the audience", "ex_jp": "・聴衆に話しかける"},
-    {"ex_en": "・the opening address", "ex_jp": "・開会の挨拶"},
-    {"no": 4, "en": "air", "jp": "放送する、放送", "ex_en": "・air a program", "ex_jp": "・番組を放送する"},
-    {"no": 5, "en": "apply", "jp": "応募する、適用される、塗る", "ex_en": "・apply for a job", "ex_jp": "・仕事に応募する"},
-    {"ex_en": "・The policy applies to all employees.", "ex_jp": "・その規定は全従業員に適用される。"},
-    {"ex_en": "・apply sunscreen", "ex_jp": "・日焼け止めを塗る"},
-    {"no": 6, "en": "balance", "jp": "残高", "ex_en": "・an account balance", "ex_jp": "・口座残高"},
-    {"no": 7, "en": "bargain", "jp": "お買い得品、交渉する", "ex_en": "・look for a bargain", "ex_jp": "・お買い得品を探す"},
-    {"ex_en": "・bargain for a discount", "ex_jp": "・値引き交渉する"},
-    {"no": 8, "en": "board", "jp": "取締役、掲示板", "ex_en": "・a board meeting", "ex_jp": "・取締役会"},
-    {"ex_en": "・a bulletin board", "ex_jp": "・掲示板"},
-    {"no": 9, "en": "book", "jp": "予約する", "ex_en": "・book a flight", "ex_jp": "・フライトを予約する"},
-    {"no": 10, "en": "break", "jp": "休憩", "ex_en": "・take a lunch break", "ex_jp": "・昼食休憩を取る"},
-    {"no": 11, "en": "capital", "jp": "首都、資金、大文字の", "ex_en": "・the capital city", "ex_jp": "・首都"},
-    {"ex_en": "・raise capital", "ex_jp": "・資金を集める"},
-    {"ex_en": "・capital T", "ex_jp": "・大文字のT"},
-    {"no": 12, "en": "carry", "jp": "置いている、扱う", "ex_en": "・We carry a wide variety of products.", "ex_jp": "・当店は様々な製品を扱っています。"},
-    {"no": 13, "en": "casual", "jp": "気楽な", "ex_en": "・make a casual comment", "ex_jp": "・気楽なコメントをする"},
-    {"no": 14, "en": "certain", "jp": "特定の", "ex_en": "・certain products", "ex_jp": "・特定の製品"},
-    {"no": 15, "en": "change", "jp": "小銭、お釣り", "ex_en": "・I have change for a dollar.", "ex_jp": "・1ドルの小銭を持っています。"},
-    {"ex_en": "・Here's your change.", "ex_jp": "・こちらがお釣りです。"},
-    {"no": 16, "en": "chapter", "jp": "支部", "ex_en": "・a chapter meeting", "ex_jp": "・支部会"},
-    {"no": 17, "en": "checkout", "jp": "レジ", "ex_en": "・the checkout counter", "ex_jp": "・レジカウンター"},
-    {"no": 18, "en": "circulation", "jp": "発行部数、貸出、流通", "ex_en": "・a circulation of around 30,000 copies", "ex_jp": "・約3万部の発行部数"},
-    {"ex_en": "・the circulation desk", "ex_jp": "・貸出カウンター"},
-    {"ex_en": "・money in circulation", "ex_jp": "・流通しているお金"},
-    {"no": 19, "en": "complete", "jp": "記入する、完了する、完了した、全部の", "ex_en": "・complete a survey", "ex_jp": "・アンケートに記入する"},
-    {"ex_en": "・complete a task", "ex_jp": "・仕事を完了する"},
-    {"ex_en": "・All the work is complete.", "ex_jp": "・作業は全て完了している。"},
-    {"ex_en": "・a complete list of our products", "ex_jp": "・当社全製品のリスト"},
-    {"no": 20, "en": "copy", "jp": "冊", "ex_en": "・a copy of the book", "ex_jp": "・その本一冊"},
-    {"no": 21, "en": "cover", "jp": "報道する、賄う、代わりをする", "ex_en": "・cover the news", "ex_jp": "・ニュースを報道する"},
-    {"ex_en": "・cover the costs", "ex_jp": "・コストを賄う"},
-    {"ex_en": "・I can cover your shift.", "ex_jp": "・私があなたのシフトを代われます。"},
-    {"no": 22, "en": "credit", "jp": "クーポン、賞賛、単位、入金する", "ex_en": "・store credit", "ex_jp": "・店内クーポン"},
-    {"ex_en": "・You deserve credit for your hard work.", "ex_jp": "・あなたの努力は賞賛に値します。"},
-    {"ex_en": "・earn credits", "ex_jp": "・単位を取得する"},
-    {"ex_en": "・Your account will be credited 30 dollars.", "ex_jp": "・あなたの口座には30ドル入金されます。"},
-    {"no": 23, "en": "deliver", "jp": "配達する、行う", "ex_en": "・deliver a product", "ex_jp": "・製品を配達する"},
-    {"ex_en": "・deliver a speech", "ex_jp": "・スピーチを行う"},
-    {"no": 24, "en": "direct", "jp": "直行の、向ける、案内する、監督、指示", "ex_en": "・take a direct flight", "ex_jp": "・直行便に乗る"},
-    {"ex_en": "・How may I direct your call?", "ex_jp": "・お電話をどちらにお繋ぎしますか？"},
-    {"ex_en": "・direct customers to the counter", "ex_jp": "・お客様をカウンターに案内する"},
-    {"ex_en": "・The film was directed by Isao Miyazaki.", "ex_jp": "・宮崎伊佐夫が監督した映画"},
-    {"ex_en": "・direct employees to work from home", "ex_jp": "・従業員に在宅勤務を指示する"},
-    {"no": 25, "en": "direction", "jp": "方向、道順、指示", "ex_en": "・facing the same direction", "ex_jp": "・同じ方向を向いている"},
-    {"ex_en": "・driving directions", "ex_jp": "・車での道順"},
-    {"ex_en": "・follow the directions", "ex_jp": "・指示に従う"},
-    {"no": 26, "en": "drill", "jp": "訓練", "ex_en": "・a safety drill", "ex_jp": "・安全訓練"},
-    {"no": 27, "en": "due", "jp": "期限、支払われるべき、予定、会費", "ex_en": "・the due date", "ex_jp": "・期日"},
-    {"ex_en": "・payment is due on May 1st", "ex_jp": "・支払いは5月1日が期限だ"},
-    {"ex_en": "・due to arrive today", "ex_jp": "・今日届く予定だ"},
-    {"ex_en": "・membership dues", "ex_jp": "・会費"},
-    {"no": 28, "en": "enjoy", "jp": "享受する", "ex_en": "・enjoy success", "ex_jp": "・成功を享受する"},
-    {"no": 29, "en": "express", "jp": "表す、速達便の", "ex_en": "・express surprise", "ex_jp": "・驚きを表す"},
-    {"ex_en": "・express shipping", "ex_jp": "・速達配送"},
-    {"no": 30, "en": "extend", "jp": "延長する、示す（招待する）", "ex_en": "・extend a deadline", "ex_jp": "・締め切りを延長する"},
-    {"ex_en": "・extend an invitation", "ex_jp": "・招待する"},
-    {"no": 31, "en": "fashion", "jp": "やり方", "ex_en": "・in a timely fashion", "ex_jp": "・タイミングの良いやり方で"},
-    {"no": 32, "en": "field", "jp": "うまくさばく", "ex_en": "・field questions from the audience", "ex_jp": "・聴衆からの質問をうまくさばく"},
-    {"no": 33, "en": "figure", "jp": "数字、人物、理解する", "ex_en": "・sales figures", "ex_jp": "・販売数量"},
-    {"ex_en": "・historical figures", "ex_jp": "・歴史上の人物"},
-    {"ex_en": "・figure out how to do it", "ex_jp": "・やり方がわかる"},
-    {"no": 34, "en": "file", "jp": "提出する", "ex_en": "・file a complaint", "ex_jp": "・苦情を申し立てる"},
-    {"no": 35, "en": "film", "jp": "撮影する", "ex_en": "・film a video", "ex_jp": "・動画を撮影する"},
-    {"no": 36, "en": "fine", "jp": "罰金", "ex_en": "・pay a fine", "ex_jp": "・罰金を支払う"},
-    {"no": 37, "en": "flat", "jp": "一律の、パンクした、アパート", "ex_en": "・a flat rate", "ex_jp": "・一律の料金"},
-    {"ex_en": "・a flat tire", "ex_jp": "・パンクしたタイヤ"},
-    {"ex_en": "・rent a flat", "ex_jp": "・アパートを借りる"},
-    {"no": 38, "en": "forward", "jp": "楽しみにする、転送する", "ex_en": "・look forward to hearing from you", "ex_jp": "・ご連絡を楽しみにしています"},
-    {"ex_en": "・forward an email", "ex_jp": "・メールを転送する"},
-    {"no": 39, "en": "head", "jp": "向かう、率いる", "ex_en": "・heading home", "ex_jp": "・家に向かっている"},
-    {"ex_en": "・head a team", "ex_jp": "・チームを率いる"},
-    {"no": 40, "en": "health", "jp": "衛生", "ex_en": "・a health inspector", "ex_jp": "・衛生検査官"},
-    {"no": 41, "en": "hold", "jp": "開く、取っておく", "ex_en": "・hold a meeting", "ex_jp": "・会議を開く"},
-    {"ex_en": "・hold an item for a customer", "ex_jp": "・客のために品物を取っておく"},
-    {"no": 42, "en": "honor", "jp": "称える、守る、光栄に思う、敬意", "ex_en": "・honor 30 years of service", "ex_jp": "・勤続30年をたたえる"},
-    {"ex_en": "・honor a contract", "ex_jp": "・契約を守る"},
-    {"ex_en": "・honored to work with you", "ex_jp": "・お仕事ができて光栄です"},
-    {"ex_en": "・in honor of Ms. Nakamura", "ex_jp": "・中村さんに敬意を表して"},
-    {"no": 43, "en": "house", "jp": "収容する", "ex_en": "・The building houses many restaurants.", "ex_jp": "・その建物には多くの飲食店が入っている"},
-    {"no": 44, "en": "issue", "jp": "問題、号、出す", "ex_en": "・safety issues", "ex_jp": "・安全性の問題"},
-    {"ex_en": "・the July issue of the magazine", "ex_jp": "・雑誌の7月号"},
-    {"ex_en": "・issue a statement", "ex_jp": "・声明を出す"},
-    {"no": 45, "en": "land", "jp": "着陸する、手に入れる", "ex_en": "・landing in half an hour", "ex_jp": "・30分後に着陸する"},
-    {"ex_en": "・land a job", "ex_jp": "・仕事を手に入れる"},
-    {"no": 46, "en": "last", "jp": "続く、持つ、この前の", "ex_en": "・last two hours", "ex_jp": "・2時間続く"},
-    {"ex_en": "・last a lifetime", "ex_jp": "・一生持つ"},
-    {"ex_en": "・over the last two years", "ex_jp": "・この2年間にわたって"},
-    {"no": 47, "en": "leave", "jp": "休暇、残す、ままにする、任せる", "ex_en": "・on leave", "ex_jp": "・休暇中"},
-    {"ex_en": "・leave a message", "ex_jp": "・伝言を残す"},
-    {"ex_en": "・Leave the door open.", "ex_jp": "・ドアを開けたままにする"},
-    {"ex_en": "・leave it up to you", "ex_jp": "・あなたに任せる"},
-    {"no": 48, "en": "level", "jp": "平らな", "ex_en": "・a level surface", "ex_jp": "・平らな面"},
-    {"no": 49, "en": "line", "jp": "ラインナップ、列", "ex_en": "・a new line of shoes", "ex_jp": "・靴の新しいラインナップ"},
-    {"ex_en": "・waiting in line", "ex_jp": "・列で待っている"},
-    {"no": 50, "en": "lot", "jp": "土地（駐車場）", "ex_en": "・a parking lot", "ex_jp": "・駐車場"},
-    {"no": 51, "en": "lower", "jp": "下げる", "ex_en": "・lower the price", "ex_jp": "・価格を下げる"},
-    {"no": 52, "en": "makeup", "jp": "埋め合わせ", "ex_en": "・the makeup day", "ex_jp": "・代休日"},
-    {"no": 53, "en": "manage", "jp": "なんとかする、対処する", "ex_en": "・managed to finish the task", "ex_jp": "・なんとか仕事を終えた"},
-    {"ex_en": "・manage it alone", "ex_jp": "・1人で対処できる"},
-    {"no": 54, "en": "margin", "jp": "利幅、差、余白", "ex_en": "・profit margins", "ex_jp": "・利幅"},
-    {"ex_en": "・by a wide margin", "ex_jp": "・大差で"},
-    {"ex_en": "・adjust the margins", "ex_jp": "・余白を調整する"},
-    {"no": 55, "en": "mark", "jp": "記念する", "ex_en": "・Today marks our 10th anniversary.", "ex_jp": "・今日は当社の10周年記念です"},
-    {"no": 56, "en": "market", "jp": "市場に出す", "ex_en": "・market a new product", "ex_jp": "・新製品を市場に出す"},
-    {"no": 57, "en": "meet", "jp": "満たす、間に合う", "ex_en": "・meet the requirements", "ex_jp": "・要件を満たす"},
-    {"ex_en": "・meet the deadline", "ex_jp": "・締め切りに間に合う"},
-    {"no": 58, "en": "minute", "jp": "議事録", "ex_en": "・the meeting minutes", "ex_jp": "・会議の議事録"},
-    {"no": 59, "en": "order", "jp": "順番、～のために、整理、正常な状態", "ex_en": "・in alphabetical order", "ex_jp": "・アルファベット順に"},
-    {"ex_en": "・hard in order to succeed", "ex_jp": "・成功するために懸命に励む"},
-    {"ex_en": "・put the files in order", "ex_jp": "・ファイルを整理した"},
-    {"ex_en": "・Everything is in order.", "ex_jp": "・全て正常だ"},
-    {"no": 60, "en": "otherwise", "jp": "そうしなければ、断りがない限り、点では", "ex_en": "・otherwise you'll be late", "ex_jp": "・さもないと遅れるぞ"},
-    {"ex_en": "・unless otherwise noted", "ex_jp": "・特に断りがない限り"},
-    {"ex_en": "・noisy, but otherwise fine", "ex_jp": "・騒がしいが他は良い"},
-    {"no": 61, "en": "panel", "jp": "委員会", "ex_en": "・a panel of experts", "ex_jp": "・専門家委員会"},
-    {"no": 62, "en": "paper", "jp": "書類、論文", "ex_en": "・important papers", "ex_jp": "・重要書類"},
-    {"ex_en": "・a research paper", "ex_jp": "・研究論文"},
-    {"no": 63, "en": "party", "jp": "グループ、関係者", "ex_en": "・a party of five", "ex_jp": "・5名のグループ"},
-    {"ex_en": "・a third party", "ex_jp": "・第三者"},
-    {"no": 64, "en": "placement", "jp": "配置、職業紹介", "ex_en": "・placement of employees", "ex_jp": "・従業員の配置"},
-    {"ex_en": "・a job placement agency", "ex_jp": "・職業紹介会社"},
-    {"no": 65, "en": "plant", "jp": "工場、植える", "ex_en": "・a manufacturing plant", "ex_jp": "・製造工場"},
-    {"ex_en": "・planting trees", "ex_jp": "・木を植えている"},
-    {"no": 66, "en": "play", "jp": "演劇", "ex_en": "・saw a play last night", "ex_jp": "・昨夜、演劇を見た"},
-    {"no": 67, "en": "pose", "jp": "引き起こす", "ex_en": "・pose a problem", "ex_jp": "・問題を引き起こす"},
-    {"no": 68, "en": "post", "jp": "投稿、情報を伝える、派遣", "ex_en": "・a post on social media", "ex_jp": "・SNSの投稿"},
-    {"ex_en": "・keep you posted", "ex_jp": "・最新情報を伝える"},
-    {"ex_en": "・posted to the Osaka branch", "ex_jp": "・大阪支店に派遣された"},
-    {"no": 69, "en": "power", "jp": "電力（停電）、電動の", "ex_en": "・a power failure", "ex_jp": "・停電"},
-    {"ex_en": "・a power tool", "ex_jp": "・電動工具"},
-    {"no": 70, "en": "practice", "jp": "活動、開業、実践", "ex_en": "・friendly practices", "ex_jp": "・環境に優しい取り組み"},
-    {"ex_en": "・a medical practice", "ex_jp": "・医業"},
-    {"ex_en": "・put a policy into practice", "ex_jp": "・方針を実践する"},
-    {"no": 71, "en": "present", "jp": "提示、授与、引き起こす、出席、現在の", "ex_en": "・present an idea", "ex_jp": "・考えを提示する"},
-    {"ex_en": "・present an award", "ex_jp": "・賞を授与する"},
-    {"ex_en": "・present a challenge", "ex_jp": "・困難を引き起こす"},
-    {"ex_en": "・present at the meeting", "ex_jp": "・会議に出席していた"},
-    {"ex_en": "・the present situation", "ex_jp": "・現在の状況"},
-    {"no": 72, "en": "pretty", "jp": "かなり", "ex_en": "・I'm pretty busy.", "ex_jp": "・かなり忙しいです"},
-    {"no": 73, "en": "principal", "jp": "主要な、校長", "ex_en": "・principal cities", "ex_jp": "・主要都市"},
-    {"ex_en": "・a school principal", "ex_jp": "・学校長"},
-    {"no": 74, "en": "produce", "jp": "製作する、農産物", "ex_en": "・produce a show", "ex_jp": "・ショーを製作する"},
-    {"ex_en": "Fresh produce", "ex_jp": "・新鮮な農産物"},
-    {"no": 75, "en": "project", "jp": "見積もる、投影する", "ex_en": "・the projected budget", "ex_jp": "・見積もり予算"},
-    {"ex_en": "・project an image onto a screen", "ex_jp": "・スクリーンに画像を投影する"},
-    {"no": 76, "en": "quality", "jp": "良質の、資質", "ex_en": "・quality products", "ex_jp": "・良質な製品"},
-    {"ex_en": "・leadership qualities", "ex_jp": "・リーダーとしての資質"},
-    {"no": 77, "en": "reach", "jp": "連絡を取る、届く", "ex_en": "・You can reach me at...", "ex_jp": "・～（番号）で私に連絡がつく"},
-    {"ex_en": "・reach new customers", "ex_jp": "・新規顧客に届く"},
-    {"no": 78, "en": "realize", "jp": "実現する", "ex_en": "・realize a dream", "ex_jp": "・夢を実現する"},
-    {"no": 79, "en": "reception", "jp": "パーティー、受付、受信、歓迎", "ex_en": "・attend a reception", "ex_jp": "・パーティーに出席する"},
-    {"ex_en": "・the reception desk", "ex_jp": "・受付"},
-    {"ex_en": "・clear reception", "ex_jp": "・クリアな受信"},
-    {"ex_en": "・a warm reception", "ex_jp": "・温かい歓迎"},
-    {"no": 80, "en": "regard", "jp": "みなす、評価する、観点", "ex_en": "・regarded as a hero", "ex_jp": "・英雄とみなされている"},
-    {"ex_en": "・highly regarded chef", "ex_jp": "・高く評価されているシェフ"},
-    {"ex_en": "・in this regard", "ex_jp": "・この観点で"},
-    {"no": 81, "en": "reservation", "jp": "予約、懸念", "ex_en": "・make a reservation", "ex_jp": "・予約する"},
-    {"ex_en": "・reservations about safety", "ex_jp": "・安全性への懸念"},
-    {"no": 82, "en": "respect", "jp": "点", "ex_en": "・in this respect", "ex_jp": "・この点において"},
-    {"no": 83, "en": "rest", "jp": "残り", "ex_en": "・the rest of my team", "ex_jp": "・チームの残り"},
-    {"no": 84, "en": "room", "jp": "スペース、余地", "ex_en": "・make room for new items", "ex_jp": "・新商品のためにスペースを空ける"},
-    {"ex_en": "・room for improvement", "ex_jp": "・改善の余地"},
-    {"no": 85, "en": "run", "jp": "運営、続く、運行、流れる", "ex_en": "・run a meeting", "ex_jp": "・会議を運営する"},
-    {"ex_en": "・runs for eight months", "ex_jp": "・8ヶ月続く"},
-    {"ex_en": "・running late", "ex_jp": "・遅れて運行している"},
-    {"ex_en": "・water running", "ex_jp": "・水が流れている"},
-    {"no": 86, "en": "sample", "jp": "試食する", "ex_en": "・sample local food", "ex_jp": "・地元の食べ物を試食する"},
-    {"no": 87, "en": "secure", "jp": "確保する、固定する", "ex_en": "・secure a place", "ex_jp": "・場所を確保する"},
-    {"ex_en": "・secured to a post", "ex_jp": "・柱に固定されている"},
-    {"no": 88, "en": "serve", "jp": "出す、サービス提供、勤務、役割", "ex_en": "・serving some food", "ex_jp": "・食べ物を出している"},
-    {"ex_en": "・better serve our customers", "ex_jp": "・より良いサービスを提供"},
-    {"ex_en": "・serve as CEO", "ex_jp": "・CEOとして勤務する"},
-    {"ex_en": "・serves as a bed", "ex_jp": "・ベッドの役割を果たす"},
-    {"no": 89, "en": "service", "jp": "点検する", "ex_en": "・is being serviced", "ex_jp": "・点検中だ"},
-    {"no": 90, "en": "shade", "jp": "影にする、ブラインド、色合い", "ex_en": "・shaded by umbrellas", "ex_jp": "・傘で影になっている"},
-    {"ex_en": "・a window shade", "ex_jp": "・窓のブラインド"},
-    {"ex_en": "・a darker shade of blue", "ex_jp": "・青のより濃い色合い"},
-    {"no": 91, "en": "signature", "jp": "署名、特徴的な（看板の）", "ex_en": "・request a signature", "ex_jp": "・署名を求める"},
-    {"ex_en": "・signature dish", "ex_jp": "・看板料理"},
-    {"no": 92, "en": "sort", "jp": "仕分けする、種類", "ex_en": "・sorting some papers", "ex_jp": "・書類を仕分けしている"},
-    {"ex_en": "・this sort of thing", "ex_jp": "・この種のこと"},
-    {"no": 93, "en": "spare", "jp": "予備の、空いた", "ex_en": "・spare parts", "ex_jp": "・予備のパーツ"},
-    {"ex_en": "・in my spare time", "ex_jp": "・空き時間に"},
-    {"no": 94, "en": "star", "jp": "主演させる", "ex_en": "・a film starring...", "ex_jp": "・～が主演の映画"},
-    {"no": 95, "en": "station", "jp": "配置する", "ex_en": "・stationed at the door", "ex_jp": "・ドアに配置された"},
-    {"no": 96, "en": "steep", "jp": "急な、大幅な、法外な", "ex_en": "・a steep slope", "ex_jp": "・急な坂"},
-    {"ex_en": "・steep discounts", "ex_jp": "・大幅な値引き"},
-    {"ex_en": "・steep prices", "ex_jp": "・法外な価格"},
-    {"no": 97, "en": "store", "jp": "保管する", "ex_en": "・store data in the cloud", "ex_jp": "・クラウドにデータを保管する"},
-    {"no": 98, "en": "story", "jp": "階", "ex_en": "・a 10-story building", "ex_jp": "・10階建てのビル"},
-    {"no": 99, "en": "stress", "jp": "強調する", "ex_en": "・stress the importance", "ex_jp": "・重要性を強調する"},
-    {"no": 100, "en": "subject", "jp": "～の可能性がある", "ex_en": "・subject to change", "ex_jp": "・変更の可能性がある"},
-    {"no": 101, "en": "term", "jp": "期間、条件、観点", "ex_en": "・long-term contract", "ex_jp": "・長期契約"},
-    {"ex_en": "・terms of an agreement", "ex_jp": "・契約条件"},
-    {"ex_en": "・in terms of quality", "ex_jp": "・質の観点で"},
-    {"no": 102, "en": "text", "jp": "メッセージを送る", "ex_en": "・Text me...", "ex_jp": "・メッセージを送ってください"},
-    {"no": 103, "en": "treat", "jp": "ご馳走する、ご馳走", "ex_en": "・treat you to lunch", "ex_jp": "・ランチをご馳走する"},
-    {"ex_en": "・a delicious treat", "ex_jp": "・美味しいご馳走"},
-    {"no": 104, "en": "unit", "jp": "住戸、設備", "ex_en": "・apartment units", "ex_jp": "・アパートの住戸"},
-    {"ex_en": "・air-conditioning unit", "ex_jp": "・空調設備"},
-    {"no": 105, "en": "value", "jp": "大切にする", "ex_en": "・We value your opinion.", "ex_jp": "・ご意見を大切にしています"},
-    {"no": 106, "en": "voice", "jp": "述べる", "ex_en": "・voice an opinion", "ex_jp": "・意見を述べる"},
-    {"no": 107, "en": "volume", "jp": "一巻", "ex_en": "・a copy of the volume", "ex_jp": "・その一冊"},
-    {"no": 108, "en": "wear", "jp": "摩耗", "ex_en": "・signs of wear", "ex_jp": "・摩耗の兆候"},
-    {"no": 109, "en": "work", "jp": "稼働、作品、うまくいく、都合", "ex_en": "・not working", "ex_jp": "・稼働していない"},
-    {"ex_en": "・works of art", "ex_jp": "・芸術作品"},
-    {"ex_en": "・That would work.", "ex_jp": "・うまくいくでしょう"},
-    {"ex_en": "・2 o'clock works for me.", "ex_jp": "・2時なら都合がつきます"}
-  ],
-  "supplement_7": [
-    {"en": "a bit of", "jp": "少しの〜"},
-    {"en": "a couple of", "jp": "二三の〜"},
-    {"en": "a number of", "jp": "いくつかの〜"},
-    {"en": "a round of applause", "jp": "盛大な拍手"},
-    {"en": "above all", "jp": "とりわけ"},
-    {"en": "account balance", "jp": "口座残高"},
-    {"en": "advance notice", "jp": "事前通知"},
-    {"en": "advance degree", "jp": "上級学位"},
-    {"en": "after all", "jp": "結局、だって〜なのだから"},
-    {"en": "ahead of schedule", "jp": "予定より早く"},
-    {"en": "all sales are final", "jp": "返品・返金不可"},
-    {"en": "along with", "jp": "〜と一緒に"},
-    {"en": "among other things", "jp": "とりわけ、何よりも"},
-    {"en": "an array of", "jp": "ずらりと並んだ〜"},
-    {"en": "as a token of appreciation", "jp": "感謝のしるしとして"},
-    {"en": "as early as", "jp": "早ければ"},
-    {"en": "as of", "jp": "〜の時点で、〜現在で"},
-    {"en": "asking price", "jp": "希望価格"},
-    {"en": "assembly line", "jp": "組み立てライン"},
-    {"en": "at all times", "jp": "常時"},
-    {"en": "at least", "jp": "少なくとも、最低"},
-    {"en": "at most", "jp": "多くても"},
-    {"en": "at the latest", "jp": "遅くとも"},
-    {"en": "at the moment", "jp": "現時点では、今のところ"},
-    {"en": "at your earliest convenience", "jp": "ご都合の良いときに"},
-    {"en": "baggage claim area", "jp": "手荷物受け取り所"},
-    {"en": "banquet hall", "jp": "宴会場"},
-    {"en": "behind schedule", "jp": "予定より遅れて"},
-    {"en": "benefits package", "jp": "福利厚生"},
-    {"en": "best of all", "jp": "とりわけ、特に"},
-    {"en": "box office", "jp": "チケット売り場、売り上げ"},
-    {"en": "bulletin board", "jp": "掲示板"},
-    {"en": "business hours", "jp": "営業時間"},
-    {"en": "can you do me a favor / could you do me a favor", "jp": "お願いがあるのですが"},
-    {"en": "ceo", "jp": "最高経営責任者"},
-    {"en": "checking account", "jp": "当座預金口座"},
-    {"en": "circulation desk", "jp": "貸し出しカウンター"},
-    {"en": "clearance sale", "jp": "在庫一掃セール"},
-    {"en": "color scheme", "jp": "配色"},
-    {"en": "community service", "jp": "社会奉仕"},
-    {"en": "company retreat", "jp": "社員旅行"},
-    {"en": "concession stand", "jp": "売店"},
-    {"en": "conference call", "jp": "電話会議"},
-    {"en": "construction site", "jp": "建設現場"},
-    {"en": "cordially invite", "jp": "謹んで招待する"},
-    {"en": "could use", "jp": "〜が必要だ、〜があるとありがたい"},
-    {"en": "currency exchange", "jp": "外貨両替"},
-    {"en": "customer satisfaction", "jp": "顧客満足"},
-    {"en": "depend on", "jp": "〜次第である、〜に頼る"},
-    {"en": "dress code", "jp": "服装規定"},
-    {"en": "due date", "jp": "期日"},
-    {"en": "expiration date", "jp": "有効期限"},
-    {"en": "fiscal year", "jp": "会計年度"},
-    {"en": "flagship store", "jp": "旗艦店"},
-    {"en": "for a while", "jp": "しばらくの間"},
-    {"en": "for immediate release", "jp": "即時解禁"},
-    {"en": "for instance", "jp": "例えば"},
-    {"en": "get to work", "jp": "出勤する"},
-    {"en": "go out of business", "jp": "商売をやめる、閉店する"},
-    {"en": "has yet to do / have yet to do", "jp": "まだ〜していない"},
-    {"en": "hear from", "jp": "〜から連絡がある"},
-    {"en": "in a rush", "jp": "急いでいる"},
-    {"en": "in an effort to", "jp": "〜しようとして"},
-    {"en": "in detail", "jp": "詳細に"},
-    {"en": "in fact", "jp": "実際"},
-    {"en": "in general", "jp": "一般的に"},
-    {"en": "in order", "jp": "順番通りに、順調で"},
-    {"en": "in particular", "jp": "特に"},
-    {"en": "in person", "jp": "対面で、直に"},
-    {"en": "in place of", "jp": "〜の代わりに"},
-    {"en": "in progress", "jp": "進行中で"},
-    {"en": "in return", "jp": "お返しに、見返りに"},
-    {"en": "in short", "jp": "要するに"},
-    {"en": "in stock", "jp": "在庫あり"},
-    {"en": "in the long run", "jp": "長期的には"},
-    {"en": "in the meantime", "jp": "その間、それまでの間"},
-    {"en": "in the process of", "jp": "〜の最中"},
-    {"en": "in time for", "jp": "〜に間に合って"},
-    {"en": "in writing", "jp": "書面で"},
-    {"en": "information packet", "jp": "情報一式"},
-    {"en": "interest rate", "jp": "利率、金利"},
-    {"en": "job fair / career fair", "jp": "就職説明会"},
-    {"en": "job opening", "jp": "職の空き、求人"},
-    {"en": "job posting", "jp": "求人票"},
-    {"en": "just in case", "jp": "万一に備えて"},
-    {"en": "just so you know", "jp": "ちなみに"},
-    {"en": "lost and found", "jp": "遺失物取扱所"},
-    {"en": "loyalty program / rewards program", "jp": "ロイヤルティ報酬プログラム"},
-    {"en": "money back guarantee", "jp": "返金保証"},
-    {"en": "no later than", "jp": "遅くとも"},
-    {"en": "no longer", "jp": "もう〜ない"},
-    {"en": "not only x but also y", "jp": "xだけでなくyも"},
-    {"en": "on a budget", "jp": "限られた予算内で"},
-    {"en": "on back order", "jp": "入荷待ちで"},
-    {"en": "on behalf of", "jp": "〜を代表して"},
-    {"en": "on board", "jp": "登場して、一員である"},
-    {"en": "on hand", "jp": "近くにいる、手近にある"},
-    {"en": "on one's way to", "jp": "〜への途中に"},
-    {"en": "on such short notice", "jp": "とても急な知らせで"},
-    {"en": "on the other hand", "jp": "その一方で"},
-    {"en": "on time", "jp": "時間通りに"},
-    {"en": "open to the public", "jp": "一般公開されている"},
-    {"en": "out of order", "jp": "故障中"},
-    {"en": "out of paper", "jp": "紙切れ"},
-    {"en": "out of stock", "jp": "在庫切れ"},
-    {"en": "out of town", "jp": "町を離れて、出張中で"},
-    {"en": "packing slip", "jp": "梱包明細書"},
-    {"en": "paid vacation", "jp": "有給休暇"},
-    {"en": "parking lot", "jp": "駐車場"},
-    {"en": "pay off", "jp": "実を結ぶ、完済する"},
-    {"en": "performance review / performance evaluation", "jp": "業績評価"},
-    {"en": "plenty of", "jp": "たくさんの〜"},
-    {"en": "press conference", "jp": "記者会見"},
-    {"en": "press release", "jp": "報道発表、プレスリリース"},
-    {"en": "quite a bit", "jp": "かなり"},
-    {"en": "quite a few", "jp": "かなりの数の"},
-    {"en": "rain date", "jp": "雨天の予備日"},
-    {"en": "raw materials", "jp": "原材料"},
-    {"en": "reach out to", "jp": "〜に連絡する"},
-    {"en": "report to work", "jp": "出勤する"},
-    {"en": "right away", "jp": "直ちに"},
-    {"en": "run into", "jp": "〜と出くわす"},
-    {"en": "sales pitch", "jp": "営業トーク"},
-    {"en": "savings account", "jp": "普通預金口座"},
-    {"en": "scavenger hunt", "jp": "借り物競争"},
-    {"en": "should you have any questions", "jp": "もしご質問があれば"},
-    {"en": "sign up for", "jp": "〜に申し込む、登録する"},
-    {"en": "so far", "jp": "今までのところ"},
-    {"en": "stay tuned", "jp": "チャンネルはそのままに"},
-    {"en": "store credit", "jp": "店内クーポン"},
-    {"en": "street stalls", "jp": "屋台"},
-    {"en": "stuck in traffic", "jp": "渋滞にはまる"},
-    {"en": "take advantage of", "jp": "〜を利用する"},
-    {"en": "take effect", "jp": "有効になる"},
-    {"en": "take part in", "jp": "〜に参加する"},
-    {"en": "take turns", "jp": "順番に行う、交代でする"},
-    {"en": "terms and conditions", "jp": "利用規約、諸条件"},
-    {"en": "that means", "jp": "つまり"},
-    {"en": "time sheet", "jp": "勤怠管理表"},
-    {"en": "to this end", "jp": "この目的で"},
-    {"en": "to whom it may concern", "jp": "ご担当者様"},
-    {"en": "trade show", "jp": "見本市"},
-    {"en": "turnaround time", "jp": "所要時間、処理時間"},
-    {"en": "up and running", "jp": "始動する、ちゃんと動き出す"},
-    {"en": "up to", "jp": "最大〜、最長〜、〜次第だ"},
-    {"en": "used to do", "jp": "かつて〜した"},
-    {"en": "welcome aboard", "jp": "ようこそ"},
-    {"en": "when it comes to", "jp": "〜に関して言えば"},
-    {"en": "within walking distance", "jp": "徒歩圏内"},
-    {"en": "work ethic", "jp": "労働倫理"}
-  ]
-}
-    // ▲ ここまで ▲
-
-    const synth = window.speechSynthesis;
+  {"no": 1000, "en": "exponentially", "jp": "飛躍的に", "ex_en": "Your TOEIC score will increase exponentially.", "ex_jp": "あなたのTOEICスコアは飛躍的に伸びるでしょう。"},
+[
+  {"no": "supplement 6", "en": "accommodate", "jp": "要望に応える、収容する、受け入れる", "ex_en": "・accommodate a request\n・The hotel can accommodate 300 guests.", "ex_jp": "・要望に応える\n・そのホテルは300名の客を収容できる。"},
+  {"no": "supplement 6", "en": "account", "jp": "口座、顧客、考慮", "ex_en": "・open a bank account\n・an account representative\n・take into account", "ex_jp": "・銀行口座を開設する\n・顧客担当者\n・考慮する"},
+  {"no": "supplement 6", "en": "address", "jp": "対処する、話しかける、演説", "ex_en": "・address concerns\n・address the audience\n・the opening address", "ex_jp": "・懸念に対処する\n・聴衆に話しかける\n・開会の挨拶"},
+  {"no": "supplement 6", "en": "air", "jp": "放送する、放送", "ex_en": "・air a program", "ex_jp": "・番組を放送する"},
+  {"no": "supplement 6", "en": "apply", "jp": "応募する、適用される、塗る", "ex_en": "・apply for a job\n・The policy applies to all employees.\n・apply sunscreen", "ex_jp": "・仕事に応募する\n・その規定は全従業員に適用される。\n・日焼け止めを塗る"},
+  {"no": "supplement 6", "en": "balance", "jp": "残高", "ex_en": "・an account balance", "ex_jp": "・口座残高"},
+  {"no": "supplement 6", "en": "bargain", "jp": "お買い得品、交渉する", "ex_en": "・look for a bargain\n・bargain for a discount", "ex_jp": "・お買い得品を探す\n・値引き交渉する"},
+  {"no": "supplement 6", "en": "board", "jp": "取締役、掲示板", "ex_en": "・a board meeting\n・a bulletin board", "ex_jp": "・取締役会\n・掲示板"},
+  {"no": "supplement 6", "en": "book", "jp": "予約する", "ex_en": "・book a flight", "ex_jp": "・フライトを予約する"},
+  {"no": "supplement 6", "en": "break", "jp": "休憩", "ex_en": "・take a lunch break", "ex_jp": "・昼食休憩を取る"},
+  {"no": "supplement 6", "en": "capital", "jp": "首都、資金、大文字の", "ex_en": "・the capital city\n・raise capital\n・capital T", "ex_jp": "・首都\n・資金を集める\n・大文字のT"},
+  {"no": "supplement 6", "en": "carry", "jp": "置いている、扱う", "ex_en": "・We carry a wide variety of products.", "ex_jp": "・当店は様々な製品を扱っています。"},
+  {"no": "supplement 6", "en": "casual", "jp": "気楽な", "ex_en": "・make a casual comment", "ex_jp": "・気楽なコメントをする"},
+  {"no": "supplement 6", "en": "certain", "jp": "特定の", "ex_en": "・certain products", "ex_jp": "・特定の製品"},
+  {"no": "supplement 6", "en": "change", "jp": "小銭、お釣り", "ex_en": "・I have change for a dollar.\n・Here's your change.", "ex_jp": "・1ドルの小銭を持っています。\n・こちらがお釣りです。"},
+  {"no": "supplement 6", "en": "chapter", "jp": "支部", "ex_en": "・a chapter meeting", "ex_jp": "・支部会"},
+  {"no": "supplement 6", "en": "checkout", "jp": "レジ", "ex_en": "・the checkout counter", "ex_jp": "・レジカウンター"},
+  {"no": "supplement 6", "en": "circulation", "jp": "発行部数、貸出、流通", "ex_en": "・a circulation of around 30,000 copies\n・the circulation desk\n・money in circulation", "ex_jp": "・約3万部の発行部数\n・貸出カウンター\n・流通しているお金"},
+  {"no": "supplement 6", "en": "complete", "jp": "記入する、完了する、完了した、全部の", "ex_en": "・complete a survey\n・complete a task\n・All the work is complete.\n・a complete list of our products", "ex_jp": "・アンケートに記入する\n・仕事を完了する\n・作業は全て完了している。\n・当社全製品のリスト"},
+  {"no": "supplement 6", "en": "copy", "jp": "冊", "ex_en": "・a copy of the book", "ex_jp": "・その本一冊"},
+  {"no": "supplement 6", "en": "cover", "jp": "報道する、賄う、代わりをする", "ex_en": "・cover the news\n・cover the costs\n・I can cover your shift.", "ex_jp": "・ニュースを報道する\n・コストを賄う\n・私があなたのシフトを代われます。"},
+  {"no": "supplement 6", "en": "credit", "jp": "クーポン、賞賛、単位、入金する", "ex_en": "・store credit\n・You deserve credit for your hard work.\n・earn credits\n・Your account will be credited 30 dollars.", "ex_jp": "・店内クーポン\n・あなたの努力は賞賛に値します。\n・単位を取得する\n・あなたの口座には30ドル入金されます。"},
+  {"no": "supplement 6", "en": "deliver", "jp": "配達する、行う", "ex_en": "・deliver a product\n・deliver a speech", "ex_jp": "・製品を配達する\n・スピーチを行う"},
+  {"no": "supplement 6", "en": "direct", "jp": "直行の、向ける、案内する、監督、指示", "ex_en": "・take a direct flight\n・How may I direct your call?\n・direct customers to the counter\n・The film was directed by Isao Miyazaki.\n・direct employees to work from home", "ex_jp": "・直行便に乗る\n・お電話をどちらにお繋ぎしますか？\n・お客様をカウンターに案内する\n・宮崎伊佐夫が監督した映画\n・従業員に在宅勤務を指示する"},
+  {"no": "supplement 6", "en": "direction", "jp": "方向、道順、指示", "ex_en": "・facing the same direction\n・driving directions\n・follow the directions", "ex_jp": "・同じ方向を向いている\n・車での道順\n・指示に従う"},
+  {"no": "supplement 6", "en": "drill", "jp": "訓練", "ex_en": "・a safety drill", "ex_jp": "・安全訓練"},
+  {"no": "supplement 6", "en": "due", "jp": "期限、支払われるべき、予定、会費", "ex_en": "・the due date\n・payment is due on May 1st\n・due to arrive today\n・membership dues", "ex_jp": "・期日\n・支払いは5月1日が期限だ\n・今日届く予定だ\n・会費"},
+  {"no": "supplement 6", "en": "enjoy", "jp": "享受する", "ex_en": "・enjoy success", "ex_jp": "・成功を享受する"},
+  {"no": "supplement 6", "en": "express", "jp": "表す、速達便の", "ex_en": "・express surprise\n・express shipping", "ex_jp": "・驚きを表す\n・速達配送"},
+  {"no": "supplement 6", "en": "extend", "jp": "延長する、示す（招待する）", "ex_en": "・extend a deadline\n・extend an invitation", "ex_jp": "・締め切りを延長する\n・招待する"},
+  {"no": "supplement 6", "en": "fashion", "jp": "やり方", "ex_en": "・in a timely fashion", "ex_jp": "・タイミングの良いやり方で"},
+  {"no": "supplement 6", "en": "field", "jp": "うまくさばく", "ex_en": "・field questions from the audience", "ex_jp": "・聴衆からの質問をうまくさばく"},
+  {"no": "supplement 6", "en": "figure", "jp": "数字、人物、理解する", "ex_en": "・sales figures\n・historical figures\n・figure out how to do it", "ex_jp": "・販売数量\n・歴史上の人物\n・やり方がわかる"},
+  {"no": "supplement 6", "en": "file", "jp": "提出する", "ex_en": "・file a complaint", "ex_jp": "・苦情を申し立てる"},
+  {"no": "supplement 6", "en": "film", "jp": "撮影する", "ex_en": "・film a video", "ex_jp": "・動画を撮影する"},
+  {"no": "supplement 6", "en": "fine", "jp": "罰金", "ex_en": "・pay a fine", "ex_jp": "・罰金を支払う"},
+  {"no": "supplement 6", "en": "flat", "jp": "一律の、パンクした、アパート", "ex_en": "・a flat rate\n・a flat tire\n・rent a flat", "ex_jp": "・一律の料金\n・パンクしたタイヤ\n・アパートを借りる"},
+  {"no": "supplement 6", "en": "forward", "jp": "楽しみにする、転送する", "ex_en": "・look forward to hearing from you\n・forward an email", "ex_jp": "・ご連絡を楽しみにしています\n・メールを転送する"},
+  {"no": "supplement 6", "en": "head", "jp": "向かう、率いる", "ex_en": "・heading home\n・head a team", "ex_jp": "・家に向かっている\n・チームを率いる"},
+  {"no": "supplement 6", "en": "health", "jp": "衛生", "ex_en": "・a health inspector", "ex_jp": "・衛生検査官"},
+  {"no": "supplement 6", "en": "hold", "jp": "開く、取っておく", "ex_en": "・hold a meeting\n・hold an item for a customer", "ex_jp": "・会議を開く\n・客のために品物を取っておく"},
+  {"no": "supplement 6", "en": "honor", "jp": "称える、守る、光栄に思う、敬意", "ex_en": "・honor 30 years of service\n・honor a contract\n・honored to work with you\n・in honor of Ms. Nakamura", "ex_jp": "・勤続30年をたたえる\n・契約を守る\n・お仕事ができて光栄です\n・中村さんに敬意を表して"},
+  {"no": "supplement 6", "en": "house", "jp": "収容する", "ex_en": "・The building houses many restaurants.", "ex_jp": "・その建物には多くの飲食店が入っている"},
+  {"no": "supplement 6", "en": "issue", "jp": "問題、号、出す", "ex_en": "・safety issues\n・the July issue of the magazine\n・issue a statement", "ex_jp": "・安全性の問題\n・雑誌の7月号\n・声明を出す"},
+  {"no": "supplement 6", "en": "land", "jp": "着陸する、手に入れる", "ex_en": "・landing in half an hour\n・land a job", "ex_jp": "・30分後に着陸する\n・仕事を手に入れる"},
+  {"no": "supplement 6", "en": "last", "jp": "続く、持つ、この前の", "ex_en": "・last two hours\n・last a lifetime\n・over the last two years", "ex_jp": "・2時間続く\n・一生持つ\n・この2年間にわたって"},
+  {"no": "supplement 6", "en": "leave", "jp": "休暇、残す、ままにする、任せる", "ex_en": "・on leave\n・leave a message\n・Leave the door open.\n・leave it up to you", "ex_jp": "・休暇中\n・伝言を残す\n・ドアを開けたままにする\n・あなたに任せる"},
+  {"no": "supplement 6", "en": "level", "jp": "平らな", "ex_en": "・a level surface", "ex_jp": "・平らな面"},
+  {"no": "supplement 6", "en": "line", "jp": "ラインナップ、列", "ex_en": "・a new line of shoes\n・waiting in line", "ex_jp": "・靴の新しいラインナップ\n・列で待っている"},
+  {"no": "supplement 6", "en": "lot", "jp": "土地（駐車場）", "ex_en": "・a parking lot", "ex_jp": "・駐車場"},
+  {"no": "supplement 6", "en": "lower", "jp": "下げる", "ex_en": "・lower the price", "ex_jp": "・価格を下げる"},
+  {"no": "supplement 6", "en": "makeup", "jp": "埋め合わせ", "ex_en": "・the makeup day", "ex_jp": "・代休日"},
+  {"no": "supplement 6", "en": "manage", "jp": "なんとかする、対処する", "ex_en": "・managed to finish the task\n・manage it alone", "ex_jp": "・なんとか仕事を終えた\n・1人で対処できる"},
+  {"no": "supplement 6", "en": "margin", "jp": "利幅、差、余白", "ex_en": "・profit margins\n・by a wide margin\n・adjust the margins", "ex_jp": "・利幅\n・大差で\n・余白を調整する"},
+  {"no": "supplement 6", "en": "mark", "jp": "記念する", "ex_en": "・Today marks our 10th anniversary.", "ex_jp": "・今日は当社の10周年記念です"},
+  {"no": "supplement 6", "en": "market", "jp": "市場に出す", "ex_en": "・market a new product", "ex_jp": "・新製品を市場に出す"},
+  {"no": "supplement 6", "en": "meet", "jp": "満たす、間に合う", "ex_en": "・meet the requirements\n・meet the deadline", "ex_jp": "・要件を満たす\n・締め切りに間に合う"},
+  {"no": "supplement 6", "en": "minute", "jp": "議事録", "ex_en": "・the meeting minutes", "ex_jp": "・会議の議事録"},
+  {"no": "supplement 6", "en": "order", "jp": "順番、～のために、整理、正常な状態", "ex_en": "・in alphabetical order\n・hard in order to succeed\n・put the files in order\n・Everything is in order.", "ex_jp": "・アルファベット順に\n・成功するために懸命に励む\n・ファイルを整理した\n・全て正常だ"},
+  {"no": "supplement 6", "en": "otherwise", "jp": "そうしなければ、断りがない限り、点では", "ex_en": "・otherwise you'll be late\n・unless otherwise noted\n・noisy, but otherwise fine", "ex_jp": "・さもないと遅れるぞ\n・特に断りがない限り\n・騒がしいが他は良い"},
+  {"no": "supplement 6", "en": "panel", "jp": "委員会", "ex_en": "・a panel of experts", "ex_jp": "・専門家委員会"},
+  {"no": "supplement 6", "en": "paper", "jp": "書類、論文", "ex_en": "・important papers\n・a research paper", "ex_jp": "・重要書類\n・研究論文"},
+  {"no": "supplement 6", "en": "party", "jp": "グループ、関係者", "ex_en": "・a party of five\n・a third party", "ex_jp": "・5名のグループ\n・第三者"},
+  {"no": "supplement 6", "en": "placement", "jp": "配置、職業紹介", "ex_en": "・placement of employees\n・a job placement agency", "ex_jp": "・従業員の配置\n・職業紹介会社"},
+  {"no": "supplement 6", "en": "plant", "jp": "工場、植える", "ex_en": "・a manufacturing plant\n・planting trees", "ex_jp": "・製造工場\n・木を植えている"},
+  {"no": "supplement 6", "en": "play", "jp": "演劇", "ex_en": "・saw a play last night", "ex_jp": "・昨夜、演劇を見た"},
+  {"no": "supplement 6", "en": "pose", "jp": "引き起こす", "ex_en": "・pose a problem", "ex_jp": "・問題を引き起こす"},
+  {"no": "supplement 6", "en": "post", "jp": "投稿、情報を伝える、派遣", "ex_en": "・a post on social media\n・keep you posted\n・posted to the Osaka branch", "ex_jp": "・SNSの投稿\n・最新情報を伝える\n・大阪支店に派遣された"},
+  {"no": "supplement 6", "en": "power", "jp": "電力（停電）、電動の", "ex_en": "・a power failure\n・a power tool", "ex_jp": "・停電\n・電動工具"},
+  {"no": "supplement 6", "en": "practice", "jp": "活動、開業、実践", "ex_en": "・friendly practices\n・a medical practice\n・put a policy into practice", "ex_jp": "・環境に優しい取り組み\n・医業\n・方針を実践する"},
+  {"no": "supplement 6", "en": "present", "jp": "提示、授与、引き起こす、出席、現在の", "ex_en": "・present an idea\n・present an award\n・present a challenge\n・present at the meeting\n・the present situation", "ex_jp": "・考えを提示する\n・賞を授与する\n・困難を引き起こす\n・会議に出席していた\n・現在の状況"},
+  {"no": "supplement 6", "en": "pretty", "jp": "かなり", "ex_en": "・I'm pretty busy.", "ex_jp": "・かなり忙しいです"},
+  {"no": "supplement 6", "en": "principal", "jp": "主要な、校長", "ex_en": "・principal cities\n・a school principal", "ex_jp": "・主要都市\n・学校長"},
+  {"no": "supplement 6", "en": "produce", "jp": "製作する、農産物", "ex_en": "・produce a show\nFresh produce", "ex_jp": "・ショーを製作する\n・新鮮な農産物"},
+  {"no": "supplement 6", "en": "project", "jp": "見積もる、投影する", "ex_en": "・the projected budget\n・project an image onto a screen", "ex_jp": "・見積もり予算\n・スクリーンに画像を投影する"},
+  {"no": "supplement 6", "en": "quality", "jp": "良質の、資質", "ex_en": "・quality products\n・leadership qualities", "ex_jp": "・良質な製品\n・リーダーとしての資質"},
+  {"no": "supplement 6", "en": "reach", "jp": "連絡を取る、届く", "ex_en": "・You can reach me at...\n・reach new customers", "ex_jp": "・～（番号）で私に連絡がつく\n・新規顧客に届く"},
+  {"no": "supplement 6", "en": "realize", "jp": "実現する", "ex_en": "・realize a dream", "ex_jp": "・夢を実現する"},
+  {"no": "supplement 6", "en": "reception", "jp": "パーティー、受付、受信、歓迎", "ex_en": "・attend a reception\n・the reception desk\n・clear reception\n・a warm reception", "ex_jp": "・パーティーに出席する\n・受付\n・クリアな受信\n・温かい歓迎"},
+  {"no": "supplement 6", "en": "regard", "jp": "みなす、評価する、観点", "ex_en": "・regarded as a hero\n・highly regarded chef\n・in this regard", "ex_jp": "・英雄とみなされている\n・高く評価されているシェフ\n・この観点で"},
+  {"no": "supplement 6", "en": "reservation", "jp": "予約、懸念", "ex_en": "・make a reservation\n・reservations about safety", "ex_jp": "・予約する\n・安全性への懸念"},
+  {"no": "supplement 6", "en": "respect", "jp": "点", "ex_en": "・in this respect", "ex_jp": "・この点において"},
+  {"no": "supplement 6", "en": "rest", "jp": "残り", "ex_en": "・the rest of my team", "ex_jp": "・チームの残り"},
+  {"no": "supplement 6", "en": "room", "jp": "スペース、余地", "ex_en": "・make room for new items\n・room for improvement", "ex_jp": "・新商品のためにスペースを空ける\n・改善の余地"},
+  {"no": "supplement 6", "en": "run", "jp": "運営、続く、運行、流れる", "ex_en": "・run a meeting\n・runs for eight months\n・running late\n・water running", "ex_jp": "・会議を運営する\n・8ヶ月続く\n・遅れて運行している\n・水が流れている"},
+  {"no": "supplement 6", "en": "sample", "jp": "試食する", "ex_en": "・sample local food", "ex_jp": "・地元の食べ物を試食する"},
+  {"no": "supplement 6", "en": "secure", "jp": "確保する、固定する", "ex_en": "・secure a place\n・secured to a post", "ex_jp": "・場所を確保する\n・柱に固定されている"},
+  {"no": "supplement 6", "en": "serve", "jp": "出す、サービス提供、勤務、役割", "ex_en": "・serving some food\n・better serve our customers\n・serve as CEO\n・serves as a bed", "ex_jp": "・食べ物を出している\n・より良いサービスを提供\n・CEOとして勤務する\n・ベッドの役割を果たす"},
+  {"no": "supplement 6", "en": "service", "jp": "点検する", "ex_en": "・is being serviced", "ex_jp": "・点検中だ"},
+  {"no": "supplement 6", "en": "shade", "jp": "影にする、ブラインド、色合い", "ex_en": "・shaded by umbrellas\n・a window shade\n・a darker shade of blue", "ex_jp": "・傘で影になっている\n・窓のブラインド\n・青のより濃い色合い"},
+  {"no": "supplement 6", "en": "signature", "jp": "署名、特徴的な（看板の）", "ex_en": "・request a signature\n・signature dish", "ex_jp": "・署名を求める\n・看板料理"},
+  {"no": "supplement 6", "en": "sort", "jp": "仕分けする、種類", "ex_en": "・sorting some papers\n・this sort of thing", "ex_jp": "・書類を仕分けしている\n・この種のこと"},
+  {"no": "supplement 6", "en": "spare", "jp": "予備の、空いた", "ex_en": "・spare parts\n・in my spare time", "ex_jp": "・予備のパーツ\n・空き時間に"},
+  {"no": "supplement 6", "en": "star", "jp": "主演させる", "ex_en": "・a film starring...", "ex_jp": "・～が主演の映画"},
+  {"no": "supplement 6", "en": "station", "jp": "配置する", "ex_en": "・stationed at the door", "ex_jp": "・ドアに配置された"},
+  {"no": "supplement 6", "en": "steep", "jp": "急な、大幅な、法外な", "ex_en": "・a steep slope\n・steep discounts\n・steep prices", "ex_jp": "・急な坂\n・大幅な値引き\n・法外な価格"},
+  {"no": "supplement 6", "en": "store", "jp": "保管する", "ex_en": "・store data in the cloud", "ex_jp": "・クラウドにデータを保管する"},
+  {"no": "supplement 6", "en": "story", "jp": "階", "ex_en": "・a 10-story building", "ex_jp": "・10階建てのビル"},
+  {"no": "supplement 6", "en": "stress", "jp": "強調する", "ex_en": "・stress the importance", "ex_jp": "・重要性を強調する"},
+  {"no": "supplement 6", "en": "subject", "jp": "～の可能性がある", "ex_en": "・subject to change", "ex_jp": "・変更の可能性がある"},
+  {"no": "supplement 6", "en": "term", "jp": "期間、条件、観点", "ex_en": "・long-term contract\n・terms of an agreement\n・in terms of quality", "ex_jp": "・長期契約\n・契約条件\n・質の観点で"},
+  {"no": "supplement 6", "en": "text", "jp": "メッセージを送る", "ex_en": "・Text me...", "ex_jp": "・メッセージを送ってください"},
+  {"no": "supplement 6", "en": "treat", "jp": "ご馳走する、ご馳走", "ex_en": "・treat you to lunch\n・a delicious treat", "ex_jp": "・ランチをご馳走する\n・美味しいご馳走"},
+  {"no": "supplement 6", "en": "unit", "jp": "住戸、設備", "ex_en": "・apartment units\n・air-conditioning unit", "ex_jp": "・アパートの住戸\n・空調設備"},
+  {"no": "supplement 6", "en": "value", "jp": "大切にする", "ex_en": "・We value your opinion.", "ex_jp": "・ご意見を大切にしています"},
+  {"no": "supplement 6", "en": "voice", "jp": "述べる", "ex_en": "・voice an opinion", "ex_jp": "・意見を述べる"},
+  {"no": "supplement 6", "en": "volume", "jp": "一巻", "ex_en": "・a copy of the volume", "ex_jp": "・その一冊"},
+  {"no": "supplement 6", "en": "wear", "jp": "摩耗", "ex_en": "・signs of wear", "ex_jp": "・摩耗の兆候"},
+  {"no": "supplement 6", "en": "work", "jp": "稼働、作品、うまくいく、都合", "ex_en": "・not working\n・works of art\n・That would work.\n・2 o'clock works for me.", "ex_jp": "・稼働していない\n・芸術作品\n・うまくいくでしょう\n・2時なら都合がつきます"},
+  {"no": "supplement 7", "en": "a bit of", "jp": "少しの〜", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "a couple of", "jp": "二三の〜", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "a number of", "jp": "いくつかの〜", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "a round of applause", "jp": "盛大な拍手", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "above all", "jp": "とりわけ", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "account balance", "jp": "口座残高", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "advance notice", "jp": "事前通知", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "advance degree", "jp": "上級学位", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "after all", "jp": "結局、だって〜なのだから", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "ahead of schedule", "jp": "予定より早く", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "all sales are final", "jp": "返品・返金不可", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "along with", "jp": "〜と一緒に", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "among other things", "jp": "とりわけ、何よりも", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "an array of", "jp": "ずらりと並んだ〜", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "as a token of appreciation", "jp": "感謝のしるしとして", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "as early as", "jp": "早ければ", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "as of", "jp": "〜の時点で、〜現在で", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "asking price", "jp": "希望価格", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "assembly line", "jp": "組み立てライン", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "at all times", "jp": "常時", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "at least", "jp": "少なくとも、最低", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "at most", "jp": "多くても", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "at the latest", "jp": "遅くとも", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "at the moment", "jp": "現時点では、今のところ", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "at your earliest convenience", "jp": "ご都合の良いときに", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "baggage claim area", "jp": "手荷物受け取り所", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "banquet hall", "jp": "宴会場", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "behind schedule", "jp": "予定より遅れて", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "benefits package", "jp": "福利厚生", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "best of all", "jp": "とりわけ、特に", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "box office", "jp": "チケット売り場、売り上げ", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "bulletin board", "jp": "掲示板", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "business hours", "jp": "営業時間", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "can you do me a favor / could you do me a favor", "jp": "お願いがあるのですが", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "ceo", "jp": "最高経営責任者", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "checking account", "jp": "当座預金口座", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "circulation desk", "jp": "貸し出しカウンター", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "clearance sale", "jp": "在庫一掃セール", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "color scheme", "jp": "配色", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "community service", "jp": "社会奉仕", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "company retreat", "jp": "社員旅行", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "concession stand", "jp": "売店", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "conference call", "jp": "電話会議", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "construction site", "jp": "建設現場", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "cordially invite", "jp": "謹んで招待する", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "could use", "jp": "〜が必要だ、〜があるとありがたい", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "currency exchange", "jp": "外貨両替", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "customer satisfaction", "jp": "顧客満足", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "depend on", "jp": "〜次第である、〜に頼る", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "dress code", "jp": "服装規定", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "due date", "jp": "期日", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "expiration date", "jp": "有効期限", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "fiscal year", "jp": "会計年度", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "flagship store", "jp": "旗艦店", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "for a while", "jp": "しばらくの間", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "for immediate release", "jp": "即時解禁", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "for instance", "jp": "例えば", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "get to work", "jp": "出勤する", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "go out of business", "jp": "商売をやめる、閉店する", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "has yet to do / have yet to do", "jp": "まだ〜していない", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "hear from", "jp": "〜から連絡がある", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in a rush", "jp": "急いでいる", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in an effort to", "jp": "〜しようとして", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in detail", "jp": "詳細に", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in fact", "jp": "実際", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in general", "jp": "一般的に", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in order", "jp": "順番通りに、順調で", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in particular", "jp": "特に", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in person", "jp": "対面で、直に", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in place of", "jp": "〜の代わりに", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in progress", "jp": "進行中で", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in return", "jp": "お返しに、見返りに", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in short", "jp": "要するに", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in stock", "jp": "在庫あり", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in the long run", "jp": "長期的には", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in the meantime", "jp": "その間、それまでの間", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in the process of", "jp": "〜の最中", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in time for", "jp": "〜に間に合って", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "in writing", "jp": "書面で", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "information packet", "jp": "情報一式", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "interest rate", "jp": "利率、金利", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "job fair / career fair", "jp": "就職説明会", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "job opening", "jp": "職の空き、求人", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "job posting", "jp": "求人票", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "just in case", "jp": "万一に備えて", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "just so you know", "jp": "ちなみに", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "lost and found", "jp": "遺失物取扱所", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "loyalty program / rewards program", "jp": "ロイヤルティ報酬プログラム", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "money back guarantee", "jp": "返金保証", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "no later than", "jp": "遅くとも", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "no longer", "jp": "もう〜ない", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "not only x but also y", "jp": "xだけでなくyも", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "on a budget", "jp": "限られた予算内で", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "on back order", "jp": "入荷待ちで", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "on behalf of", "jp": "〜を代表して", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "on board", "jp": "登場して、一員である", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "on hand", "jp": "近くにいる、手近にある", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "on one's way to", "jp": "〜への途中に", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "on such short notice", "jp": "とても急な知らせで", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "on the other hand", "jp": "その一方で", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "on time", "jp": "時間通りに", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "open to the public", "jp": "一般公開されている", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "out of order", "jp": "故障中", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "out of paper", "jp": "紙切れ", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "out of stock", "jp": "在庫切れ", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "out of town", "jp": "町を離れて、出張中で", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "packing slip", "jp": "梱包明細書", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "paid vacation", "jp": "有給休暇", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "parking lot", "jp": "駐車場", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "pay off", "jp": "実を結ぶ、完済する", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "performance review / performance evaluation", "jp": "業績評価", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "plenty of", "jp": "たくさんの〜", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "press conference", "jp": "記者会見", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "press release", "jp": "報道発表、プレスリリース", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "quite a bit", "jp": "かなり", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "quite a few", "jp": "かなりの数の", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "rain date", "jp": "雨天の予備日", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "raw materials", "jp": "原材料", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "reach out to", "jp": "〜に連絡する", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "report to work", "jp": "出勤する", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "right away", "jp": "直ちに", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "run into", "jp": "〜と出くわす", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "sales pitch", "jp": "営業トーク", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "savings account", "jp": "普通預金口座", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "scavenger hunt", "jp": "借り物競争", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "should you have any questions", "jp": "もしご質問があれば", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "sign up for", "jp": "〜に申し込む、登録する", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "so far", "jp": "今までのところ", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "stay tuned", "jp": "チャンネルはそのままに", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "store credit", "jp": "店内クーポン", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "street stalls", "jp": "屋台", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "stuck in traffic", "jp": "渋滞にはまる", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "take advantage of", "jp": "〜を利用する", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "take effect", "jp": "有効になる", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "take part in", "jp": "〜に参加する", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "take turns", "jp": "順番に行う、交代でする", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "terms and conditions", "jp": "利用規約、諸条件", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "that means", "jp": "つまり", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "time sheet", "jp": "勤怠管理表", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "to this end", "jp": "この目的で", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "to whom it may concern", "jp": "ご担当者様", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "trade show", "jp": "見本市", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "turnaround time", "jp": "所要時間、処理時間", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "up and running", "jp": "始動する、ちゃんと動き出す", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "up to", "jp": "最大〜、最長〜、〜次第だ", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "used to do", "jp": "かつて〜した", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "welcome aboard", "jp": "ようこそ", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "when it comes to", "jp": "〜に関して言えば", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "within walking distance", "jp": "徒歩圏内", "ex_en": "", "ex_jp": ""},
+  {"no": "supplement 7", "en": "work ethic", "jp": "労働倫理", "ex_en": "", "ex_jp": ""}
+];
     
-    // State variables
-    let stock = {}; 
+    let stock = {}; // 単語のnoをキー、間違えた回数を値とするオブジェクト
     let selectedQCount = 10;
     let isVoiceOn = true;
-    let currentMode = 'normal';
     let queue = [];
     let currentIdx = 0;
     let correctCount = 0;
-    let history = [];
+    let historyData = []; // 変数名被り防止
     let isProcessing = false;
+    let currentMode = 'normal';
 
-    // Ordered ranges requested
-    const ranges = [
-        { label: "1-100", filter: w => typeof w.no === 'number' && w.no >= 1 && w.no <= 100 },
-        { label: "101-200", filter: w => typeof w.no === 'number' && w.no >= 101 && w.no <= 200 },
-        { label: "201-300", filter: w => typeof w.no === 'number' && w.no >= 201 && w.no <= 300 },
-        { label: "301-400", filter: w => typeof w.no === 'number' && w.no >= 301 && w.no <= 400 },
-        { label: "supplement1＆2", filter: w => String(w.no) === "supplement1＆2" },
-        { label: "column 1＆2", filter: w => String(w.no) === "column 1＆2" },
-        { label: "401-500", filter: w => typeof w.no === 'number' && w.no >= 401 && w.no <= 500 },
-        { label: "501-600", filter: w => typeof w.no === 'number' && w.no >= 501 && w.no <= 600 },
-        { label: "601-700", filter: w => typeof w.no === 'number' && w.no >= 601 && w.no <= 700 },
-        { label: "supplement 3", filter: w => String(w.no) === "supplement 3" },
-        { label: "supplement 4＆5", filter: w => String(w.no) === "supplement 4＆5" },
-        { label: "701-800", filter: w => typeof w.no === 'number' && w.no >= 701 && w.no <= 800 },
-        { label: "801-900", filter: w => typeof w.no === 'number' && w.no >= 801 && w.no <= 900 },
-        { label: "supplement 6", filter: w => String(w.no) === "supplement_6" || String(w.no) === "supplement 6" },
-        { label: "901-1000", filter: w => typeof w.no === 'number' && w.no >= 901 && w.no <= 1000 },
-        { label: "supplement 7", filter: w => String(w.no) === "supplement_7" || String(w.no) === "supplement 7" }
-    ];
+    const synth = window.speechSynthesis;
     
     function initVoice() {
         if (synth) {
@@ -2216,53 +2066,70 @@
 
     function initRangeSelector() {
         const sel = document.getElementById('range-selector');
-        
-        const optAll = document.createElement('option');
-        optAll.value = "all";
-        optAll.text = "全範囲 (1-1000 + 補足)";
-        sel.appendChild(optAll);
+        const ranges = [
+            { val: "all", label: "全範囲" },
+            { val: "1-100", label: "1-100" },
+            { val: "101-200", label: "101-200" },
+            { val: "201-300", label: "201-300" },
+            { val: "301-400", label: "301-400" },
+            { val: "supplement1＆2", label: "supplement1＆2" },
+            { val: "column 1＆2", label: "column 1＆2" },
+            { val: "401-500", label: "401-500" },
+            { val: "501-600", label: "501-600" },
+            { val: "601-700", label: "601-700" },
+            { val: "supplement 3", label: "supplement 3" },
+            { val: "supplement 4＆5", label: "supplement 4＆5" },
+            { val: "701-800", label: "701-800" },
+            { val: "801-900", label: "801-900" },
+            { val: "supplement 6", label: "supplement 6" },
+            { val: "901-1000", label: "901-1000" },
+            { val: "supplement 7", label: "supplement 7" }
+        ];
 
-        ranges.forEach((r, idx) => {
+        ranges.forEach(r => {
             const opt = document.createElement('option');
-            opt.value = idx;
+            opt.value = r.val;
             opt.text = r.label;
             sel.appendChild(opt);
         });
     }
 
-    // --- Stock (苦手リスト) Data Management ---
     function loadStock() {
-        const savedObj = localStorage.getItem('kinFureStockObj');
-        if (savedObj) { 
-            try { 
-                stock = JSON.parse(savedObj); 
-                return;
-            } catch(e) { stock = {}; } 
-        }
-        
-        const savedArr = localStorage.getItem('kinFureStock');
-        stock = {};
-        if (savedArr) {
-            try { 
-                let arr = JSON.parse(savedArr); 
-                arr.forEach(no => stock[no] = 1); 
-                saveStock(); 
-            } catch(e) {} 
+        const saved = localStorage.getItem('kinFureStock');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                // 過去のSet形式の配列だった場合のマイグレーション
+                if (Array.isArray(parsed)) {
+                    stock = {};
+                    parsed.forEach(id => { stock[id] = 1; });
+                } else {
+                    stock = parsed;
+                }
+            } catch(e) { 
+                stock = {}; 
+            }
+        } else {
+            stock = {};
         }
     }
 
     function saveStock() {
-        localStorage.setItem('kinFureStockObj', JSON.stringify(stock));
+        localStorage.setItem('kinFureStock', JSON.stringify(stock));
         updateStockDisplay();
     }
 
+    function getStockSize() {
+        return Object.keys(stock).length;
+    }
+
     function updateStockDisplay() {
+        const count = getStockSize();
         const el = document.getElementById('stock-display');
         const btn = document.getElementById('btn-start-stock');
-        const stockSize = Object.keys(stock).length;
-        el.innerText = stockSize;
-        btn.disabled = (stockSize === 0);
-        btn.innerText = (stockSize === 0) ? "苦手リストは空です" : "苦手リストから出題";
+        el.innerText = count;
+        btn.disabled = (count === 0);
+        btn.innerText = (count === 0) ? "苦手リストは空です" : "苦手リストから出題";
     }
 
     function selectQNum(num, el) {
@@ -2277,82 +2144,39 @@
         if (isVoiceOn) initVoice();
     }
 
-    // --- Quiz Generators ---
-
     function startNormalQuiz() {
         checkVoiceSetting();
         const selVal = document.getElementById('range-selector').value;
         const msg = document.getElementById('setup-msg');
         msg.innerText = "";
 
-        if (allWords.length === 0) {
-            msg.innerText = "単語データがセットされていません。";
-            return;
-        }
-
-        let targets;
+        let targets = [];
         if (selVal === "all") {
-            targets = [...allWords];
+            targets = allWords;
+        } else if (selVal.includes('-')) {
+            const [s, e] = selVal.split('-').map(Number);
+            targets = allWords.filter(w => typeof w.no === 'number' && w.no >= s && w.no <= e);
         } else {
-            targets = allWords.filter(ranges[parseInt(selVal)].filter);
+            targets = allWords.filter(w => w.no === selVal);
         }
 
         if (targets.length === 0) { msg.innerText = "対象単語がありません"; return; }
-
-        let pool = [...targets];
-        let qQueue = [];
-        for(let i=0; i<selectedQCount; i++) {
-            if(pool.length === 0) pool = [...targets];
-            const r = Math.floor(Math.random() * pool.length);
-            qQueue.push(pool[r]);
-            pool.splice(r, 1);
-        }
-
-        startQuiz(qQueue, 'normal');
+        setupQuiz(targets, selectedQCount, 'normal');
     }
 
     function startStockQuiz() {
         checkVoiceSetting();
-        const msg = document.getElementById('setup-msg');
-        msg.innerText = "";
-
-        if (allWords.length === 0) {
-            msg.innerText = "単語データがセットされていません。";
-            return;
-        }
-
-        let pool = allWords.filter(w => stock[w.no] > 0);
-        if (pool.length === 0) return;
-
-        let qQueue = [];
-        let limit = Math.min(selectedQCount, pool.length); 
-
-        while(qQueue.length < limit) {
-            let totalWeight = pool.reduce((sum, w) => sum + stock[w.no], 0);
-            let r = Math.random() * totalWeight;
-            let current = 0;
-            
-            for(let i=0; i<pool.length; i++) {
-                current += stock[pool[i].no];
-                if(r <= current) {
-                    qQueue.push(pool[i]);
-                    pool.splice(i, 1); 
-                    break;
-                }
-            }
-        }
-
-        startQuiz(qQueue, 'stock');
+        const targets = allWords.filter(w => stock[w.no]);
+        // 苦手リスト出題時も選択した問題数（selectedQCount）を適用
+        setupQuiz(targets, selectedQCount, 'stock');
     }
 
     function startRetryWrong() {
         checkVoiceSetting();
-        const wrongNos = history.filter(h => !h.correct).map(h => h.no);
-        let pool = allWords.filter(w => wrongNos.includes(w.no));
-        if (pool.length === 0) return;
-        
-        shuffle(pool);
-        startQuiz(pool, 'retry'); 
+        const wrongNos = historyData.filter(h => !h.correct).map(h => h.no);
+        const targets = allWords.filter(w => wrongNos.includes(w.no));
+        if (targets.length === 0) return;
+        setupQuiz(targets, targets.length, 'retry');
     }
 
     function shuffle(array) {
@@ -2363,14 +2187,37 @@
         return array;
     }
 
-    // --- Quiz Execution ---
-
-    function startQuiz(qQueue, mode) {
+    function setupQuiz(targets, maxCount, mode) {
         currentMode = mode;
-        queue = qQueue;
+        let pool = [...targets];
+        queue = [];
+        
+        if (mode === 'normal') {
+            for(let i=0; i<maxCount; i++) {
+                if(pool.length === 0) pool = [...targets];
+                const r = Math.floor(Math.random() * pool.length);
+                queue.push(pool[r]);
+                pool.splice(r, 1);
+            }
+        } else if (mode === 'stock') {
+            // ストック数が多い単語を優先して抽出
+            pool.sort((a, b) => {
+                const countDiff = (stock[b.no] || 0) - (stock[a.no] || 0);
+                // 回数が同じ場合は少しだけランダム性を加える
+                return countDiff !== 0 ? countDiff : (Math.random() - 0.5);
+            });
+            queue = pool.slice(0, maxCount);
+            // 抽出後は出題順が回数順にならないようにシャッフル
+            shuffle(queue);
+        } else {
+            // retry
+            shuffle(pool);
+            queue = pool.slice(0, maxCount);
+        }
+
         currentIdx = 0;
         correctCount = 0;
-        history = [];
+        historyData = [];
         isProcessing = false;
 
         document.getElementById('setup-view').classList.add('hidden');
@@ -2379,10 +2226,10 @@
 
         const tag = document.getElementById('q-tag');
         if (mode === 'stock') {
-            tag.innerText = "Stock Mode: 正解で回数減少・削除";
+            tag.innerText = "Stock Mode: 正解でリストから削除";
             tag.classList.remove('hidden');
         } else if (mode === 'retry') {
-            tag.innerText = "Retry: 先ほど間違えた問題";
+            tag.innerText = "Retry: 間違えた問題";
             tag.classList.remove('hidden');
         } else {
             tag.classList.add('hidden');
@@ -2452,19 +2299,20 @@
         showFeedback(isCorrect);
         
         if (!isCorrect) {
+            // 間違えたら回数をインクリメント（永続保存）
             stock[word.no] = (stock[word.no] || 0) + 1;
             saveStock();
         } else {
+            // StockやRetryモードで正解した場合はリストから削除
             if (currentMode === 'stock' || currentMode === 'retry') {
                 if (stock[word.no]) {
-                    stock[word.no] -= 1;
-                    if (stock[word.no] <= 0) delete stock[word.no];
+                    delete stock[word.no];
                     saveStock();
                 }
             }
         }
 
-        history.push({
+        historyData.push({
             no: word.no, en: word.en, jp: word.jp, selected: choice, correct: isCorrect
         });
 
@@ -2482,7 +2330,7 @@
         document.getElementById('final-score').innerText = `${correctCount} / ${queue.length}`;
         
         const retryBtn = document.getElementById('btn-retry-wrong');
-        const wrongCount = history.filter(h => !h.correct).length;
+        const wrongCount = historyData.filter(h => !h.correct).length;
         if (wrongCount > 0) {
             retryBtn.style.display = 'flex';
             retryBtn.innerText = `間違えた ${wrongCount}問 をやり直す`;
@@ -2493,7 +2341,7 @@
         const listEl = document.getElementById('review-list');
         listEl.innerHTML = "";
 
-        history.forEach(h => {
+        historyData.forEach(h => {
             const li = document.createElement('li');
             li.className = 'result-item';
             if(!h.correct) li.classList.add('incorrect');
