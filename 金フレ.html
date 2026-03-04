@@ -201,7 +201,8 @@
 </div>
 
 <script>
-    const allWords = [
+    // ▼ コピペする際は、複数の配列を1つの大きな配列にまとめてください ▼
+    const allWords = []; const allWords = [
   {"no": 1, "en": "anyway", "jp": "とにかく", "ex_en": "Let's try anyway.", "ex_jp": "とにかくやってみよう"},
   {"no": 2, "en": "following", "jp": "～のあとで、次の", "ex_en": "Following the meeting, we had lunch.", "ex_jp": "会議のあと我々はランチをとった"},
   {"no": 3, "en": "refer", "jp": "参照する", "ex_en": "Please refer to the map.", "ex_jp": "地図を参照してください"},
@@ -2144,10 +2145,12 @@
     {"en": "work ethic", "jp": "労働倫理"}
   ]
 }
+    // ▲ ここまで ▲
+
     const synth = window.speechSynthesis;
     
     // State variables
-    let stock = {}; // Object to hold { wordNo: errorCount }
+    let stock = {}; 
     let selectedQCount = 10;
     let isVoiceOn = true;
     let currentMode = 'normal';
@@ -2229,7 +2232,6 @@
 
     // --- Stock (苦手リスト) Data Management ---
     function loadStock() {
-        // 新しいオブジェクト形式での読み込み
         const savedObj = localStorage.getItem('kinFureStockObj');
         if (savedObj) { 
             try { 
@@ -2238,14 +2240,13 @@
             } catch(e) { stock = {}; } 
         }
         
-        // 古い配列形式(Set用)のデータが残っていた場合の移行措置
         const savedArr = localStorage.getItem('kinFureStock');
         stock = {};
         if (savedArr) {
             try { 
                 let arr = JSON.parse(savedArr); 
-                arr.forEach(no => stock[no] = 1); // 古いデータは回数1として引き継ぎ
-                saveStock(); // 新形式で保存し直す
+                arr.forEach(no => stock[no] = 1); 
+                saveStock(); 
             } catch(e) {} 
         }
     }
@@ -2284,6 +2285,11 @@
         const msg = document.getElementById('setup-msg');
         msg.innerText = "";
 
+        if (allWords.length === 0) {
+            msg.innerText = "単語データがセットされていません。";
+            return;
+        }
+
         let targets;
         if (selVal === "all") {
             targets = [...allWords];
@@ -2295,7 +2301,6 @@
 
         let pool = [...targets];
         let qQueue = [];
-        // 通常はランダムに選択（指定数に満たなければプールを復活させて重複出題）
         for(let i=0; i<selectedQCount; i++) {
             if(pool.length === 0) pool = [...targets];
             const r = Math.floor(Math.random() * pool.length);
@@ -2311,14 +2316,17 @@
         const msg = document.getElementById('setup-msg');
         msg.innerText = "";
 
-        // stockに存在する単語だけを抽出
+        if (allWords.length === 0) {
+            msg.innerText = "単語データがセットされていません。";
+            return;
+        }
+
         let pool = allWords.filter(w => stock[w.no] > 0);
         if (pool.length === 0) return;
 
         let qQueue = [];
-        let limit = Math.min(selectedQCount, pool.length); // 指定数かstock数の少ない方
+        let limit = Math.min(selectedQCount, pool.length); 
 
-        // 間違えた回数に基づいた「重み付きランダム抽出（非復元抽出）」
         while(qQueue.length < limit) {
             let totalWeight = pool.reduce((sum, w) => sum + stock[w.no], 0);
             let r = Math.random() * totalWeight;
@@ -2328,7 +2336,7 @@
                 current += stock[pool[i].no];
                 if(r <= current) {
                     qQueue.push(pool[i]);
-                    pool.splice(i, 1); // 同じ問題は1回のテストで2度出ないようにする
+                    pool.splice(i, 1); 
                     break;
                 }
             }
@@ -2344,7 +2352,7 @@
         if (pool.length === 0) return;
         
         shuffle(pool);
-        startQuiz(pool, 'retry'); // 復習モードは全問出題
+        startQuiz(pool, 'retry'); 
     }
 
     function shuffle(array) {
@@ -2443,13 +2451,10 @@
         
         showFeedback(isCorrect);
         
-        // 苦手の記録（Stockの更新）
         if (!isCorrect) {
-            // 間違えたらカウントを増やす
             stock[word.no] = (stock[word.no] || 0) + 1;
             saveStock();
         } else {
-            // 正解した場合、かつStock/Retryモードならカウントを減らす
             if (currentMode === 'stock' || currentMode === 'retry') {
                 if (stock[word.no]) {
                     stock[word.no] -= 1;
@@ -2497,7 +2502,6 @@
             const detail = !h.correct 
                 ? `<div class="res-row"><span class="res-lbl" style="width:40px;font-weight:bold;color:#666">回答</span><span class="val-ng">${h.selected}</span></div>` 
                 : '';
-            // stockに残っている、かつ回数が表示できるように変更
             const stockBadge = stock[h.no] ? `<span class="stock-badge">Stock (${stock[h.no]}回)</span>` : '';
 
             li.innerHTML = `
