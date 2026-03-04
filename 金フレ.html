@@ -91,7 +91,7 @@
         .hidden { display: none !important; }
         .msg { font-size: 0.85rem; text-align: center; margin-top: 10px; font-weight: bold; color: var(--wrong-text); }
         
-        /* Subliminal Feedback Overlay - Smaller */
+        /* Subliminal Feedback Overlay */
         #feedback-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; align-items: center; justify-content: center;
@@ -119,6 +119,14 @@
         .stock-badge { display: inline-block; background: var(--secondary); color: white; font-size: 0.6rem; padding: 2px 6px; border-radius: 10px; margin-left: 5px; vertical-align: middle; }
         .res-row { display: flex; align-items: center; gap: 8px; }
         .res-lbl { width: 40px; font-weight: bold; color: #666; font-size: 0.85rem; }
+        
+        /* 例文表示用のスタイル */
+        .res-sentence { 
+            margin-top: 8px; font-size: 0.9rem; color: #444; background: #f9f9f9; 
+            padding: 10px; border-radius: 6px; border-left: 3px solid var(--primary); text-align: left;
+        }
+        .ex-en { font-weight: bold; margin-bottom: 4px; }
+        .ex-jp { font-size: 0.8rem; color: #777; }
     </style>
 </head>
 <body>
@@ -199,7 +207,7 @@
 </div>
 
 <script>
-    const allWords = [
+     const allWords = [
   {"no": 1, "en": "anyway", "jp": "とにかく", "ex_en": "Let's try anyway.", "ex_jp": "とにかくやってみよう"},
   {"no": 2, "en": "following", "jp": "～のあとで、次の", "ex_en": "Following the meeting, we had lunch.", "ex_jp": "会議のあと我々はランチをとった"},
   {"no": 3, "en": "refer", "jp": "参照する", "ex_en": "Please refer to the map.", "ex_jp": "地図を参照してください"},
@@ -1758,6 +1766,7 @@
   {"no": 998, "en": "resilience", "jp": "回復力", "ex_en": "Resilience in a difficult situation.", "ex_jp": "困難な状況での回復力。"},
   {"no": 999, "en": "reinvent", "jp": "生き方を変える", "ex_en": "It's time to reinvent yourself.", "ex_jp": "今こそ生き方を変える時だ。"},
   {"no": 1000, "en": "exponentially", "jp": "飛躍的に", "ex_en": "Your TOEIC score will increase exponentially.", "ex_jp": "あなたのTOEICスコアは飛躍的に伸びるでしょう。"},
+[
   {"no": "supplement 6", "en": "accommodate", "jp": "要望に応える、収容する、受け入れる", "ex_en": "・accommodate a request\n・The hotel can accommodate 300 guests.", "ex_jp": "・要望に応える\n・そのホテルは300名の客を収容できる。"},
   {"no": "supplement 6", "en": "account", "jp": "口座、顧客、考慮", "ex_en": "・open a bank account\n・an account representative\n・take into account", "ex_jp": "・銀行口座を開設する\n・顧客担当者\n・考慮する"},
   {"no": "supplement 6", "en": "address", "jp": "対処する、話しかける、演説", "ex_en": "・address concerns\n・address the audience\n・the opening address", "ex_jp": "・懸念に対処する\n・聴衆に話しかける\n・開会の挨拶"},
@@ -2019,13 +2028,14 @@
   {"no": "supplement 7", "en": "work ethic", "jp": "労働倫理", "ex_en": "", "ex_jp": ""}
 ];
     
-    let stock = {}; // 単語のnoをキー、間違えた回数を値とするオブジェクト
+    // 一度間違えたら true をセットして記録する仕組み
+    let stock = {}; 
     let selectedQCount = 10;
     let isVoiceOn = true;
     let queue = [];
     let currentIdx = 0;
     let correctCount = 0;
-    let historyData = []; // 変数名被り防止
+    let historyData = []; 
     let isProcessing = false;
     let currentMode = 'normal';
 
@@ -2100,12 +2110,12 @@
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
-                // 過去のSet形式の配列だった場合のマイグレーション
+                stock = {};
+                // 古いデータ形式（配列など）の互換性を保ちつつ変換
                 if (Array.isArray(parsed)) {
-                    stock = {};
-                    parsed.forEach(id => { stock[id] = 1; });
+                    parsed.forEach(id => { stock[id] = true; });
                 } else {
-                    stock = parsed;
+                    Object.keys(parsed).forEach(k => { stock[k] = true; });
                 }
             } catch(e) { 
                 stock = {}; 
@@ -2155,10 +2165,12 @@
         if (selVal === "all") {
             targets = allWords;
         } else if (selVal.includes('-')) {
+            // 文字列の場合も考慮して範囲指定を抽出
             const [s, e] = selVal.split('-').map(Number);
-            targets = allWords.filter(w => typeof w.no === 'number' && w.no >= s && w.no <= e);
+            targets = allWords.filter(w => !isNaN(w.no) && Number(w.no) >= s && Number(w.no) <= e);
         } else {
-            targets = allWords.filter(w => w.no === selVal);
+            // "supplement1＆2" 等の文字・数字を正確に判定
+            targets = allWords.filter(w => String(w.no) === selVal);
         }
 
         if (targets.length === 0) { msg.innerText = "対象単語がありません"; return; }
@@ -2168,7 +2180,6 @@
     function startStockQuiz() {
         checkVoiceSetting();
         const targets = allWords.filter(w => stock[w.no]);
-        // 苦手リスト出題時も選択した問題数（selectedQCount）を適用
         setupQuiz(targets, selectedQCount, 'stock');
     }
 
@@ -2200,18 +2211,7 @@
                 queue.push(pool[r]);
                 pool.splice(r, 1);
             }
-        } else if (mode === 'stock') {
-           // ▼ここから修正
-            // 先にシャッフルしてランダム性を確保（sort内でのMath.randomはエラーの原因になるため避ける）
-            shuffle(pool);
-            // ストック数が多い単語を優先して抽出
-            pool.sort((a, b) => (stock[b.no] || 0) - (stock[a.no] || 0));
-            queue = pool.slice(0, maxCount);
-            // 抽出後は出題順が回数順にならないように再度シャッフル
-            shuffle(queue);
-            // ▲ここまで修正
-        } else {
-            // retry
+        } else if (mode === 'stock' || mode === 'retry') {
             shuffle(pool);
             queue = pool.slice(0, maxCount);
         }
@@ -2300,21 +2300,24 @@
         showFeedback(isCorrect);
         
         if (!isCorrect) {
-            // 間違えたら回数をインクリメント（永続保存）
-            stock[word.no] = (stock[word.no] || 0) + 1;
+            stock[word.no] = true;
             saveStock();
         } else {
-            // StockやRetryモードで正解した場合はリストから削除
-            if (currentMode === 'stock' || currentMode === 'retry') {
-                if (stock[word.no]) {
-                    delete stock[word.no];
-                    saveStock();
-                }
+            if (stock[word.no]) {
+                delete stock[word.no];
+                saveStock();
             }
         }
 
+        // 履歴データに ex_en と ex_jp を保存
         historyData.push({
-            no: word.no, en: word.en, jp: word.jp, selected: choice, correct: isCorrect
+            no: word.no, 
+            en: word.en, 
+            jp: word.jp, 
+            selected: choice, 
+            correct: isCorrect, 
+            ex_en: word.ex_en, 
+            ex_jp: word.ex_jp
         });
 
         setTimeout(() => {
@@ -2351,9 +2354,20 @@
             const detail = !h.correct 
                 ? `<div class="res-row"><span class="res-lbl" style="width:40px;font-weight:bold;color:#666">回答</span><span class="val-ng">${h.selected}</span></div>` 
                 : '';
-            const stockBadge = stock[h.no] ? `<span class="stock-badge">Stock (${stock[h.no]}回)</span>` : '';
+                
+            const stockBadge = stock[h.no] ? `<span class="stock-badge">苦手</span>` : '';
 
-           li.innerHTML = `
+            // ex_en が存在し、空文字ではない場合に例文要素を生成
+            let sentenceHtml = '';
+            if (h.ex_en && h.ex_en.trim() !== "") {
+                sentenceHtml = `
+                <div class="res-sentence">
+                    <div class="ex-en">💡 ${h.ex_en}</div>
+                    <div class="ex-jp">${h.ex_jp || ''}</div>
+                </div>`;
+            }
+
+            li.innerHTML = `
                 <div class="res-header">
                     <span>No.${h.no} ${stockBadge}</span>
                     <span style="font-size:1.2rem">${mark}</span>
@@ -2366,6 +2380,7 @@
                     </div>
                     ${detail}
                 </div>
+                ${sentenceHtml}
             `;
             listEl.appendChild(li);
         });
@@ -2381,5 +2396,3 @@
 </script>
 </body>
 </html>
-
-
